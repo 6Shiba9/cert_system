@@ -28,6 +28,8 @@ class Activity extends Model
         'end_date',
         'certificate_img',
         'user_id',
+        'access_code',
+        'is_active',
     ];
 
     public function agency()
@@ -43,5 +45,19 @@ class Activity extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id'); // โดยปกติ Primary Key ของ User คือ id
+    }
+
+    public function participants()
+    {
+        return $this->hasMany(Participant::class, 'activity_id', 'activity_id');
+    }
+
+    public static function generateAccessCode()
+    {
+        do {
+            $code = strtoupper(substr(bin2hex(random_bytes(5)), 0, 10));
+        } while (self::where('access_code', $code)->exists());
+        
+        return $code;
     }
 }

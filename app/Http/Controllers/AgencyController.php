@@ -13,7 +13,7 @@ class AgencyController extends Controller
     {
         $agency = Agency::with('branches')->get();
         $branches = Branches::all();
-        return view('Advancedmanagent.Agency', compact('agency', 'branches'));
+        return view('advancedmanagent.Agency', compact('agency', 'branches'));
 
     }
 

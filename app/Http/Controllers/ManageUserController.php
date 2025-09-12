@@ -13,7 +13,7 @@ class ManageUserController extends Controller
     public function showmanageUser()
     {
         $users = User::all();
-        return view('Advancedmanagent.ManageUser', compact('users'));
+        return view('advancedmanagent.ManageUser', compact('users'));
     }
 
     public function createuser(Request $request)
@@ -42,7 +42,7 @@ class ManageUserController extends Controller
     public function edituser($id)
     {
         $user = User::findOrFail($id);
-        return view('Advancedmanagent.edituser', compact('user'));
+        return view('advancedmanagent.Edituser', compact('user'));
     }
     public function updateuser(Request $request, $id)
     {
