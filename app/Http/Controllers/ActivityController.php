@@ -143,7 +143,7 @@ class ActivityController extends Controller
             $file = $request->file('participants_file');
             
             // Log file details for debugging
-            \Log::info('File upload details:', [
+            Log::info('File upload details:', [
                 'original_name' => $file->getClientOriginalName(),
                 'mime_type' => $file->getMimeType(),
                 'size' => $file->getSize(),
@@ -156,7 +156,7 @@ class ActivityController extends Controller
             
             // Count imported participants
             $participantCount = Participant::where('activity_id', $activity->activity_id)->count();
-            \Log::info('Participants imported successfully', [
+            Log::info('Participants imported successfully', [
                 'activity_id' => $activity->activity_id,
                 'total_participants' => $participantCount
             ]);
@@ -164,7 +164,7 @@ class ActivityController extends Controller
             return back()->with('success', "อัพโหลดรายชื่อผู้เข้าร่วมเรียบร้อยแล้ว (จำนวน {$participantCount} คน)");
             
         } catch (\Exception $e) {
-            \Log::error('Participant import error:', [
+            Log::error('Participant import error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
