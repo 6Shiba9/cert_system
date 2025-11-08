@@ -11,6 +11,7 @@ class Participant extends Model
 
     protected $table = 'participants';
     protected $primaryKey = 'participant_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'activity_id',

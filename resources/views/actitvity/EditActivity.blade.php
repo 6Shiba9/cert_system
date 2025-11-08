@@ -11,6 +11,14 @@
         @csrf
         @method('PUT')
 
+        <!-- รหัสเข้าถึง -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสเข้าถึง</label>
+            <input type="text" value="{{ $activity->access_code }}" readonly
+                   class="w-full h-10 px-4 rounded-lg border-gray-300 bg-gray-50 text-gray-700 font-mono">
+            <p class="text-sm text-gray-500 mt-1">รหัสนี้ใช้สำหรับให้ผู้เข้าร่วมเข้าถึงใบประกาศ</p>
+        </div>
+
         <!-- ชื่อกิจกรรม -->
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อกิจกรรม</label>
@@ -45,8 +53,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">เลือกสาขา</label>
                 <select name="branch_id" id="branch_id"
-                        class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        required>
+                        class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">-- เลือกสาขา --</option>
                     @foreach($branches as $branch)
                         <option value="{{ $branch->branch_id }}" 
@@ -83,9 +90,19 @@
             </div>
         </div>
 
+        <!-- สถานะการใช้งาน -->
+        <div>
+            <label class="flex items-center">
+                <input type="checkbox" name="is_active" value="1" 
+                       {{ old('is_active', $activity->is_active) ? 'checked' : '' }}
+                       class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <span class="ml-2 text-sm text-gray-700">เปิดใช้งานกิจกรรม</span>
+            </label>
+        </div>
+
         <!-- ใบประกาศปัจจุบัน -->
         @if($activity->certificate_img)
-        <div>
+        <div id="current_certificate_section">
             <label class="block text-sm font-medium text-gray-700 mb-1">ใบประกาศปัจจุบัน</label>
             <div class="bg-gray-50 p-4 rounded-lg border">
                 <div class="relative inline-block">
@@ -94,12 +111,12 @@
                          alt="Current Certificate" 
                          class="max-w-full max-h-96 rounded-lg border shadow-lg cursor-crosshair">
                     <div id="current_name_position_marker" 
-                         class="absolute w-4 h-4 bg-red-500 border-2 border-white rounded-full shadow-lg transform -translate-x-2 -translate-y-2 cursor-move"
-                         style="left: {{ ($activity->position_x / 1000) * 100 }}%; top: {{ ($activity->position_y / 1000) * 100 }}%;">
+                         class="absolute w-4 h-4 bg-red-500 border-2 border-white rounded-full shadow-lg cursor-move"
+                         style="left: {{ ($activity->position_x / 1000) * 100 }}%; top: {{ ($activity->position_y / 1000) * 100 }}%; transform: translate(-50%, -50%);">
                     </div>
                     <div id="current_preview_text" 
                          class="absolute text-red-600 font-bold text-lg pointer-events-none"
-                         style="left: {{ ($activity->position_x / 1000) * 100 }}%; top: {{ ($activity->position_y / 1000) * 100 }}%; transform: translateX(-50%) translateY(-20px); text-shadow: 1px 1px 2px white;">
+                         style="left: {{ ($activity->position_x / 1000) * 100 }}%; top: calc({{ ($activity->position_y / 1000) * 100 }}% - 20px); transform: translateX(-50%); text-shadow: 1px 1px 2px white;">
                         ตัวอย่างชื่อผู้เข้าร่วม
                     </div>
                 </div>
@@ -114,31 +131,35 @@
         <!-- อัพโหลดใบประกาศใหม่ -->
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-                {{ $activity->certificate_img ? 'เปลี่ยนรูปใบประกาศ' : 'รูปใบประกาศ' }} (PNG)
+                {{ $activity->certificate_img ? 'เปลี่ยนรูปใบประกาศ' : 'รูปใบประกาศ' }} (PNG, JPG, JPEG)
             </label>
             <input type="file" name="certificate_img" id="certificate_img" accept="image/png,image/jpg,image/jpeg"
                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-indigo-500">
-            <p class="text-sm text-gray-500 mt-1">รองรับไฟล์ PNG, JPG, JPEG ขนาดไม่เกิน 2MB</p>
+            <p class="text-sm text-gray-500 mt-1">รองรับไฟล์ PNG, JPG, JPEG ขนาดไม่เกิน 2MB (เลือกถ้าต้องการเปลี่ยนเท่านั้น)</p>
             @error('certificate_img')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
             @enderror
         </div>
 
-        <!-- New Certificate Preview (shown when new file is selected) -->
+        <!-- New Certificate Preview -->
         <div id="new_certificate_preview_section" class="hidden">
             <label class="block text-sm font-medium text-gray-700 mb-3">กำหนดตำแหน่งชื่อบนใบประกาศใหม่</label>
-            <div class="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
+            <div class="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
                 <div class="relative inline-block">
                     <img id="new_certificate_preview" src="" alt="New Certificate Preview" 
                          class="max-w-full max-h-96 border rounded-lg shadow-lg cursor-crosshair">
                     <div id="new_name_position_marker" 
-                         class="absolute w-4 h-4 bg-red-500 border-2 border-white rounded-full shadow-lg transform -translate-x-2 -translate-y-2 cursor-move hidden">
+                         class="absolute w-4 h-4 bg-red-500 border-2 border-white rounded-full shadow-lg cursor-move hidden">
                     </div>
                     <div id="new_preview_text" 
                          class="absolute text-red-600 font-bold text-lg pointer-events-none hidden"
                          style="text-shadow: 1px 1px 2px white;">
                         ตัวอย่างชื่อผู้เข้าร่วม
                     </div>
+                </div>
+                <div class="mt-3 text-sm text-gray-600">
+                    <p>• คลิกบนรูปภาพเพื่อกำหนดตำแหน่งชื่อ</p>
+                    <p>• ลากจุดแดงเพื่อปรับตำแหน่ง</p>
                 </div>
             </div>
         </div>
@@ -147,7 +168,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง X (แนวนอน)</label>
-                <input type="number" name="position_x" value="{{ old('position_x', $activity->position_x) }}" min="0" max="1000"
+                <input type="number" name="position_x" id="position_x" value="{{ old('position_x', $activity->position_x ?? 0) }}" min="0" max="1000"
                        class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 @error('position_x')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -155,30 +176,12 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง Y (แนวตั้ง)</label>
-                <input type="number" name="position_y" value="{{ old('position_y', $activity->position_y) }}" min="0" max="1000"
+                <input type="number" name="position_y" id="position_y" value="{{ old('position_y', $activity->position_y ?? 0) }}" min="0" max="1000"
                        class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 @error('position_y')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
-        </div>
-
-        <!-- สถานะการใช้งาน -->
-        <div>
-            <label class="flex items-center">
-                <input type="checkbox" name="is_active" value="1" 
-                       {{ old('is_active', $activity->is_active) ? 'checked' : '' }}
-                       class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                <span class="ml-2 text-sm text-gray-700">เปิดใช้งานกิจกรรม</span>
-            </label>
-        </div>
-
-        <!-- รหัสเข้าถึง -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสเข้าถึง</label>
-            <input type="text" value="{{ $activity->access_code }}" readonly
-                   class="w-full h-10 px-4 rounded-lg border-gray-300 bg-gray-50 text-gray-700 font-mono">
-            <p class="text-sm text-gray-500 mt-1">รหัสนี้ใช้สำหรับให้ผู้เข้าร่วมเข้าถึงใบประกาศ</p>
         </div>
 
         <!-- ปุ่ม -->
@@ -196,44 +199,101 @@
 </div>
 
 <script>
-// Agency-Branch dropdown functionality
-document.getElementById('agency_id').addEventListener('change', function() {
-    const agencyId = this.value;
-    const branchSelect = document.getElementById('branch_id');
-    
-    // Clear existing options except first one
-    branchSelect.innerHTML = '<option value="">-- เลือกสาขา --</option>';
-    
-    if (agencyId) {
-        fetch(`/api/branches/${agencyId}`)
-            .then(response => response.json())
-            .then(branches => {
-                branches.forEach(branch => {
-                    const option = document.createElement('option');
-                    option.value = branch.branch_id;
-                    option.textContent = branch.branch_name;
-                    if (branch.branch_id == {{ $activity->branch_id }}) {
-                        option.selected = true;
-                    }
-                    branchSelect.appendChild(option);
-                });
+// Agency-Branch dropdown
+const agencies = @json($agencies);
+document.addEventListener("DOMContentLoaded", function () {
+    const agencySelect = document.getElementById("agency_id");
+    const branchSelect = document.getElementById("branch_id");
+
+    agencySelect.addEventListener("change", function () {
+        const selectedAgencyId = this.value;
+        branchSelect.innerHTML = '<option value="">-- เลือกสาขา --</option>';
+
+        if (!selectedAgencyId) {
+            branchSelect.disabled = true;
+            branchSelect.removeAttribute("required");
+            return;
+        }
+
+        const selectedAgency = agencies.find(a => a.agency_id == selectedAgencyId);
+
+        if (selectedAgency && selectedAgency.branches.length > 0) {
+            branchSelect.disabled = false;
+            branchSelect.setAttribute("required", "required");
+
+            selectedAgency.branches.forEach(branch => {
+                let opt = document.createElement("option");
+                opt.value = branch.branch_id;
+                opt.textContent = branch.branch_name;
+                branchSelect.appendChild(opt);
             });
+        } else {
+            branchSelect.disabled = true;
+            branchSelect.removeAttribute("required");
+        }
+    });
+});
+
+// ==============================================
+// Certificate Position Handler (Current & New)
+// ==============================================
+
+let activePreview = 'current'; // 'current' or 'new'
+
+// When new file is selected
+document.getElementById('certificate_img').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const newPreview = document.getElementById('new_certificate_preview');
+            const newSection = document.getElementById('new_certificate_preview_section');
+            
+            newPreview.src = e.target.result;
+            newSection.classList.remove('hidden');
+            
+            // Hide current certificate section
+            const currentSection = document.getElementById('current_certificate_section');
+            if (currentSection) {
+                currentSection.style.opacity = '0.5';
+            }
+            
+            activePreview = 'new';
+            updatePreviewFromInputs();
+        };
+        reader.readAsDataURL(file);
     }
 });
 
-// Load branches on page load if agency is selected
-if (document.getElementById('agency_id').value) {
-    document.getElementById('agency_id').dispatchEvent(new Event('change'));
+// Update preview when inputs change manually
+document.getElementById('position_x').addEventListener('input', updatePreviewFromInputs);
+document.getElementById('position_y').addEventListener('input', updatePreviewFromInputs);
+
+function updatePreviewFromInputs() {
+    const positionX = parseInt(document.getElementById('position_x').value) || 0;
+    const positionY = parseInt(document.getElementById('position_y').value) || 0;
+    
+    const previewId = activePreview === 'new' ? 'new_certificate_preview' : 'current_certificate_preview';
+    const preview = document.getElementById(previewId);
+    
+    if (!preview) return;
+    
+    const rect = preview.getBoundingClientRect();
+    
+    if (rect.width > 0 && rect.height > 0) {
+        const x = (positionX / 1000) * rect.width;
+        const y = (positionY / 1000) * rect.height;
+        
+        updateMarkerPosition(x, y, activePreview);
+    }
 }
 
-// Current certificate position functionality
-const currentPreview = document.getElementById('current_certificate_preview');
-const currentMarker = document.getElementById('current_name_position_marker');
-const currentPreviewText = document.getElementById('current_preview_text');
-
-if (currentPreview) {
-    // Position functionality for current certificate
-    currentPreview.addEventListener('click', function(e) {
+// Click handler for both certificates
+function setupClickHandler(previewId, markerPrefix) {
+    const preview = document.getElementById(previewId);
+    if (!preview) return;
+    
+    preview.addEventListener('click', function(e) {
         const rect = this.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -241,196 +301,114 @@ if (currentPreview) {
         const relativeX = Math.round((x / rect.width) * 1000);
         const relativeY = Math.round((y / rect.height) * 1000);
         
-        updateCurrentPosition(x, y, relativeX, relativeY);
+        updatePosition(x, y, relativeX, relativeY, markerPrefix);
     });
-
-    // Drag functionality for current certificate marker
-    let isDraggingCurrent = false;
-    let dragOffsetCurrent = { x: 0, y: 0 };
-
-    currentMarker.addEventListener('mousedown', function(e) {
-        isDraggingCurrent = true;
-        const rect = this.getBoundingClientRect();
-        dragOffsetCurrent.x = e.clientX - rect.left;
-        dragOffsetCurrent.y = e.clientY - rect.top;
-        
-        document.addEventListener('mousemove', onDragCurrent);
-        document.addEventListener('mouseup', stopDragCurrent);
-        e.preventDefault();
-    });
-
-    function onDragCurrent(e) {
-        if (!isDraggingCurrent) return;
-        
-        const previewRect = currentPreview.getBoundingClientRect();
-        const x = e.clientX - previewRect.left - dragOffsetCurrent.x;
-        const y = e.clientY - previewRect.top - dragOffsetCurrent.y;
-        
-        const constrainedX = Math.max(0, Math.min(x, previewRect.width - 16));
-        const constrainedY = Math.max(0, Math.min(y, previewRect.height - 16));
-        
-        const relativeX = Math.round((constrainedX / previewRect.width) * 1000);
-        const relativeY = Math.round((constrainedY / previewRect.height) * 1000);
-        
-        updateCurrentPosition(constrainedX, constrainedY, relativeX, relativeY);
-    }
-
-    function stopDragCurrent() {
-        isDraggingCurrent = false;
-        document.removeEventListener('mousemove', onDragCurrent);
-        document.removeEventListener('mouseup', stopDragCurrent);
-    }
-
-    function updateCurrentPosition(x, y, relativeX, relativeY) {
-        currentMarker.style.left = x + 'px';
-        currentMarker.style.top = y + 'px';
-        
-        currentPreviewText.style.left = x + 'px';
-        currentPreviewText.style.top = (y - 10) + 'px';
-        currentPreviewText.style.transform = 'translateX(-50%)';
-        
-        document.getElementById('position_x').value = relativeX;
-        document.getElementById('position_y').value = relativeY;
-    }
 }
 
-// New certificate upload functionality
-document.getElementById('certificate_img').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const newPreview = document.getElementById('new_certificate_preview');
-            const newPreviewSection = document.getElementById('new_certificate_preview_section');
-            
-            newPreview.src = e.target.result;
-            newPreviewSection.classList.remove('hidden');
-            
-            // Hide current certificate preview when new one is selected
-            if (currentPreview) {
-                currentPreview.parentElement.parentElement.style.opacity = '0.5';
-            }
-            
-            resetNewPosition();
-        };
-        reader.readAsDataURL(file);
-    } else {
-        document.getElementById('new_certificate_preview_section').classList.add('hidden');
-        if (currentPreview) {
-            currentPreview.parentElement.parentElement.style.opacity = '1';
-        }
-    }
-});
+// Setup click handlers for both previews
+setupClickHandler('current_certificate_preview', 'current');
+setupClickHandler('new_certificate_preview', 'new');
 
-// New certificate position functionality
-document.getElementById('new_certificate_preview').addEventListener('click', function(e) {
-    const rect = this.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const relativeX = Math.round((x / rect.width) * 1000);
-    const relativeY = Math.round((y / rect.height) * 1000);
-    
-    updateNewPosition(x, y, relativeX, relativeY);
-});
+// Drag functionality
+let isDragging = false;
+let dragOffset = { x: 0, y: 0 };
 
-// Drag functionality for new certificate
-let isDraggingNew = false;
-let dragOffsetNew = { x: 0, y: 0 };
-
-document.getElementById('new_name_position_marker').addEventListener('mousedown', function(e) {
-    isDraggingNew = true;
-    const rect = this.getBoundingClientRect();
-    dragOffsetNew.x = e.clientX - rect.left;
-    dragOffsetNew.y = e.clientY - rect.top;
+function setupDragHandler(markerId, previewId, prefix) {
+    const marker = document.getElementById(markerId);
+    if (!marker) return;
     
-    document.addEventListener('mousemove', onDragNew);
-    document.addEventListener('mouseup', stopDragNew);
-    e.preventDefault();
-});
+    marker.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        activePreview = prefix;
+        
+        const rect = this.getBoundingClientRect();
+        dragOffset.x = e.clientX - rect.left - rect.width / 2;
+        dragOffset.y = e.clientY - rect.top - rect.height / 2;
+        
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', stopDrag);
+        e.preventDefault();
+    });
+}
 
-function onDragNew(e) {
-    if (!isDraggingNew) return;
+setupDragHandler('current_name_position_marker', 'current_certificate_preview', 'current');
+setupDragHandler('new_name_position_marker', 'new_certificate_preview', 'new');
+
+function onDrag(e) {
+    if (!isDragging) return;
     
-    const preview = document.getElementById('new_certificate_preview');
+    const previewId = activePreview === 'new' ? 'new_certificate_preview' : 'current_certificate_preview';
+    const preview = document.getElementById(previewId);
     const previewRect = preview.getBoundingClientRect();
     
-    const x = e.clientX - previewRect.left - dragOffsetNew.x;
-    const y = e.clientY - previewRect.top - dragOffsetNew.y;
+    const x = e.clientX - previewRect.left - dragOffset.x;
+    const y = e.clientY - previewRect.top - dragOffset.y;
     
-    const constrainedX = Math.max(0, Math.min(x, previewRect.width - 16));
-    const constrainedY = Math.max(0, Math.min(y, previewRect.height - 16));
+    const constrainedX = Math.max(0, Math.min(x, previewRect.width));
+    const constrainedY = Math.max(0, Math.min(y, previewRect.height));
     
     const relativeX = Math.round((constrainedX / previewRect.width) * 1000);
     const relativeY = Math.round((constrainedY / previewRect.height) * 1000);
     
-    updateNewPosition(constrainedX, constrainedY, relativeX, relativeY);
+    updatePosition(constrainedX, constrainedY, relativeX, relativeY, activePreview);
 }
 
-function stopDragNew() {
-    isDraggingNew = false;
-    document.removeEventListener('mousemove', onDragNew);
-    document.removeEventListener('mouseup', stopDragNew);
+function stopDrag() {
+    isDragging = false;
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
 }
 
-function updateNewPosition(x, y, relativeX, relativeY) {
-    const marker = document.getElementById('new_name_position_marker');
-    const previewText = document.getElementById('new_preview_text');
+function updatePosition(x, y, relativeX, relativeY, prefix) {
+    updateMarkerPosition(x, y, prefix);
+    document.getElementById('position_x').value = relativeX;
+    document.getElementById('position_y').value = relativeY;
+}
+
+function updateMarkerPosition(x, y, prefix) {
+    const marker = document.getElementById(prefix + '_name_position_marker');
+    const previewText = document.getElementById(prefix + '_preview_text');
+    
+    if (!marker || !previewText) return;
     
     marker.style.left = x + 'px';
     marker.style.top = y + 'px';
     marker.classList.remove('hidden');
     
     previewText.style.left = x + 'px';
-    previewText.style.top = (y - 10) + 'px';
+    previewText.style.top = (y - 20) + 'px';
     previewText.style.transform = 'translateX(-50%)';
     previewText.classList.remove('hidden');
     
-    document.getElementById('position_x').value = relativeX;
-    document.getElementById('position_y').value = relativeY;
+    marker.style.animation = 'pulse 0.3s ease-in-out';
+    setTimeout(() => marker.style.animation = '', 300);
 }
 
-function resetNewPosition() {
-    const marker = document.getElementById('new_name_position_marker');
-    const previewText = document.getElementById('new_preview_text');
-    
-    marker.classList.add('hidden');
-    previewText.classList.add('hidden');
-    
-    // Reset to current activity position
-    document.getElementById('position_x').value = {{ $activity->position_x }};
-    document.getElementById('position_y').value = {{ $activity->position_y }};
-}
-
-// Add CSS styles
+// CSS Animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes pulse {
-        0% { transform: scale(1) translate(-50%, -50%); }
-        50% { transform: scale(1.2) translate(-50%, -50%); }
-        100% { transform: scale(1) translate(-50%, -50%); }
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(1.2); }
     }
     
-    .position-marker {
+    #current_name_position_marker,
+    #new_name_position_marker {
         transform: translate(-50%, -50%);
     }
     
-    .position-marker:hover {
+    #current_name_position_marker:hover,
+    #new_name_position_marker:hover {
         background-color: #dc2626;
         transform: translate(-50%, -50%) scale(1.1);
     }
     
-    .certificate-preview:hover {
+    #current_certificate_preview:hover,
+    #new_certificate_preview:hover {
         filter: brightness(1.05);
     }
 `;
 document.head.appendChild(style);
-
-// Apply classes
-document.getElementById('current_name_position_marker').classList.add('position-marker');
-document.getElementById('new_name_position_marker').classList.add('position-marker');
-document.getElementById('current_certificate_preview').classList.add('certificate-preview');
-document.getElementById('new_certificate_preview').classList.add('certificate-preview');
 </script>
 
 @endsection

@@ -92,20 +92,26 @@
                 <thead>
                     <tr class="bg-gray-50">
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">กิจกรรม</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">หน่วยงาน</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">สาขา</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">รหัส</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">สถานะ</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ผู้เข้าร่วม</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">การจัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($topActivities as $activity)
+                    @forelse($topActivities as $activity)
                     <tr class="border-b border-gray-200 hover:bg-gray-50">
                         <td class="px-5 py-5 text-sm">
                             <p class="text-gray-900 font-semibold">{{ $activity->activity_name }}</p>
                         </td>
-                        <td class="px-5 py-5 text-sm text-gray-700">{{ $activity->agency->agency_name }}</td>
-                        <td class="px-5 py-5 text-sm text-gray-700">{{ $activity->branch->branch_name }}</td>
+                        <td class="px-5 py-5 text-sm">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-xs">{{ $activity->access_code }}</code>
+                        </td>
+                        <td class="px-5 py-5 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full {{ $activity->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $activity->is_active ? 'เปิดใช้งาน' : 'ปิด' }}
+                            </span>
+                        </td>
                         <td class="px-5 py-5 text-sm">
                             <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
                                 {{ $activity->participants_count }} คน
@@ -113,10 +119,16 @@
                         </td>
                         <td class="px-5 py-5 text-sm">
                             <a href="{{ route('activity-details', $activity->activity_id) }}" 
-                               class="text-blue-600 hover:text-blue-900">ดูรายละเอียด</a>
+                               class="text-blue-600 hover:text-blue-900 hover:underline">ดูรายละเอียด</a>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="5" class="px-5 py-5 text-center text-gray-500">
+                            ไม่มีข้อมูลกิจกรรม
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -142,18 +154,32 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($recentDownloads as $log)
+                    @forelse($recentDownloads as $log)
                     <tr class="border-b border-gray-200 hover:bg-gray-50">
                         <td class="px-5 py-5 text-sm text-gray-700">
-                            {{ $log->downloaded_at->format('d/m/Y H:i') }}
+                            {{ $log->downloaded_at ? $log->downloaded_at->format('d/m/Y H:i') : 'N/A' }}
                         </td>
                         <td class="px-5 py-5 text-sm">
-                            <p class="text-gray-900">{{ $log->participant->activity->activity_name }}</p>
+                            @if($log->participant && $log->participant->activity)
+                                <p class="text-gray-900">{{ $log->participant->activity->activity_name }}</p>
+                            @else
+                                <span class="text-gray-400 italic">ไม่มีข้อมูล</span>
+                            @endif
                         </td>
-                        <td class="px-5 py-5 text-sm text-gray-700">{{ $log->participant->name }}</td>
-                        <td class="px-5 py-5 text-sm text-gray-700 font-mono">{{ $log->ip_address }}</td>
+                        <td class="px-5 py-5 text-sm text-gray-700">
+                            {{ $log->participant ? $log->participant->name : 'N/A' }}
+                        </td>
+                        <td class="px-5 py-5 text-sm text-gray-700 font-mono">
+                            {{ $log->ip_address ?? 'N/A' }}
+                        </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="4" class="px-5 py-5 text-center text-gray-500">
+                            ยังไม่มีการดาวน์โหลด
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -173,7 +199,8 @@ const monthlyChart = new Chart(monthlyCtx, {
             data: @json(array_column($monthlyDownloads, 'count')),
             borderColor: '#3B82F6',
             backgroundColor: '#3B82F640',
-            tension: 0.1
+            tension: 0.4,
+            fill: true
         }]
     },
     options: {
@@ -185,7 +212,10 @@ const monthlyChart = new Chart(monthlyCtx, {
         },
         scales: {
             y: {
-                beginAtZero: true
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
             }
         }
     }

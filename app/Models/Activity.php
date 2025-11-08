@@ -16,7 +16,9 @@ class Activity extends Model
     protected $table = 'activity';
     protected $primaryKey = 'activity_id';
     public $timestamps = false;
-
+    
+    const CREATED_AT = 'start_date'; // หรือคอลัมน์อื่นที่เก็บวันที่สร้าง
+    const UPDATED_AT = null; // ปิดการใช้ updated_at
 
     protected $fillable = [
         'activity_name',
@@ -30,6 +32,13 @@ class Activity extends Model
         'user_id',
         'access_code',
         'is_active',
+    ];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'is_active' => 'boolean',
+        'public_timestamps' => 'integer',
     ];
 
     public function agency()
@@ -59,5 +68,17 @@ class Activity extends Model
         } while (self::where('access_code', $code)->exists());
         
         return $code;
+    }
+
+       public function downloadLogs()
+    {
+        return $this->hasManyThrough(
+            DownloadLog::class,
+            Participant::class,
+            'activity_id',     // Foreign key on participants table
+            'participant_id',  // Foreign key on download_logs table
+            'activity_id',     // Local key on activity table
+            'participant_id'   // Local key on participants table
+        );
     }
 }

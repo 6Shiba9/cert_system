@@ -27,7 +27,7 @@
             </div>
         @endif
         
-        <form method="POST" action="{{ route('access-certificate') }}">
+        <form method="POST" action="{{ route('certificate.access') }}">
             @csrf
 
             <!-- Access Code Field -->

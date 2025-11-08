@@ -1,4 +1,4 @@
-@extends('partials.layout')
+@extends('partials.dashboard')
 
 @section('title', 'รายละเอียดกิจกรรม - ' . $activity->activity_name)
 
@@ -10,9 +10,12 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">{{ $activity->activity_name }}</h1>
-                    <p class="text-gray-600">{{ $activity->agency->agency_name }} - {{ $activity->branch->branch_name }}</p>
+                    <p class="text-gray-600">
+                        รหัส: {{ $activity->access_code }} | 
+                        สร้างโดย: {{ $activity->user ? $activity->user->name : 'ไม่ระบุ' }}
+                    </p>
                 </div>
-                <a href="{{ route('dashboard.summary') }}" 
+                <a href="{{ route('summary') }}" 
                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200">
                     ← กลับไปแดชบอร์ด
                 </a>
@@ -26,8 +29,16 @@
                 <h3 class="text-lg font-semibold mb-4">ข้อมูลกิจกรรม</h3>
                 <div class="space-y-3">
                     <div>
-                        <span class="text-sm text-gray-600">วันที่จัด:</span>
-                        <p class="font-medium">{{ \Carbon\Carbon::parse($activity->activity_date)->format('d/m/Y') }}</p>
+                        <span class="text-sm text-gray-600">วันที่เริ่มต้น:</span>
+                        <p class="font-medium">
+                            {{ $activity->start_date ? $activity->start_date->format('d/m/Y') : 'ไม่ระบุ' }}
+                        </p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-600">วันที่สิ้นสุด:</span>
+                        <p class="font-medium">
+                            {{ $activity->end_date ? $activity->end_date->format('d/m/Y') : 'ไม่ระบุ' }}
+                        </p>
                     </div>
                     <div>
                         <span class="text-sm text-gray-600">จำนวนผู้เข้าร่วม:</span>
@@ -38,8 +49,12 @@
                         <p class="font-medium font-mono">{{ $activity->access_code }}</p>
                     </div>
                     <div>
-                        <span class="text-sm text-gray-600">สร้างเมื่อ:</span>
-                        <p class="font-medium">{{ \Carbon\Carbon::parse($activity->created_at)->format('d/m/Y H:i') }}</p>
+                        <span class="text-sm text-gray-600">สถานะ:</span>
+                        <p class="font-medium">
+                            <span class="px-2 py-1 rounded-full text-xs {{ $activity->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $activity->is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}
+                            </span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -71,12 +86,18 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="text-lg font-semibold mb-4">ตัวอย่างใบประกาศ</h3>
                 <div class="text-center">
-                    <img src="{{ asset('storage/' . $activity->certificate_img) }}" 
-                         alt="Certificate Template" 
-                         class="max-w-full h-auto rounded-lg border">
-                    <p class="text-sm text-gray-600 mt-2">
-                        ตำแหน่งชื่อ: X={{ $activity->position_x }}, Y={{ $activity->position_y }}
-                    </p>
+                    @if($activity->certificate_img)
+                        <img src="{{ asset('storage/' . $activity->certificate_img) }}" 
+                             alt="Certificate Template" 
+                             class="max-w-full h-auto rounded-lg border">
+                        <p class="text-sm text-gray-600 mt-2">
+                            ตำแหน่งชื่อ: X={{ $activity->position_x }}, Y={{ $activity->position_y }}
+                        </p>
+                    @else
+                        <div class="bg-gray-100 rounded-lg p-8 text-gray-400">
+                            ไม่มีเทมเพลตใบประกาศ
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -102,30 +123,30 @@
                                 ผู้ดาวน์โหลด
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                อีเมล
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 IP Address
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 วันที่ดาวน์โหลด
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                User Agent
-                            </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse($activity->downloadLogs()->latest()->limit(20)->get() as $log)
+                        @forelse($activity->downloadLogs()->with('participant')->latest('downloaded_at')->limit(20)->get() as $log)
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ $log->participant_name }}
+                                {{ $log->participant ? $log->participant->name : 'N/A' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $log->ip_address }}
+                                {{ $log->participant ? $log->participant->email : 'N/A' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                                {{ $log->ip_address ?? 'N/A' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ \Carbon\Carbon::parse($log->downloaded_at)->format('d/m/Y H:i:s') }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                                {{ $log->user_agent ?? 'ไม่ระบุ' }}
+                                {{ $log->downloaded_at ? $log->downloaded_at->format('d/m/Y H:i:s') : 'N/A' }}
                             </td>
                         </tr>
                         @empty

@@ -11,6 +11,7 @@ class DownloadLog extends Model
 
     protected $table = 'download_logs';
     protected $primaryKey = 'log_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'participant_id',

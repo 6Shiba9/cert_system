@@ -42,6 +42,8 @@
                     <th class="px-5 py-3 border-b-2 border-gray-200">สาขา</th>
                     <th class="px-5 py-3 border-b-2 border-gray-200">วันที่</th>
                     <th class="px-5 py-3 border-b-2 border-gray-200">รหัสเข้าถึง</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200">จำนวนผู้เข้าร่วม</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200">รายงาน</th>
                     <th class="px-5 py-3 border-b-2 border-gray-200">ผู้เข้าร่วม</th>
                     <th class="px-5 py-3 border-b-2 border-gray-200">สถานะ</th>
                     <th class="px-5 py-3 border-b-2 border-gray-200">การจัดการ</th>
@@ -62,7 +64,9 @@
                             </div>
                         </td>
                         <td class="px-5 py-5 border-b border-gray-200 text-sm">{{ $activity->agency->agency_name }}</td>
-                        <td class="px-5 py-5 border-b border-gray-200 text-sm">{{ $activity->branch->branch_name }}</td>
+                        <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                            {{ $activity->branch->branch_name ?? '-' }}
+                        </td>
                         <td class="px-5 py-5 border-b border-gray-200 text-sm">
                             {{ \Carbon\Carbon::parse($activity->start_date)->format('d/m/Y') }} - 
                             {{ \Carbon\Carbon::parse($activity->end_date)->format('d/m/Y') }}
@@ -71,9 +75,18 @@
                             <span class="font-mono bg-gray-100 px-2 py-1 rounded">{{ $activity->access_code }}</span>
                         </td>
                         <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                            {{ $activity->participants->count() }} คน
+                        </td>
+                        <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                            <a href="{{ route('activity.certificates', $activity->activity_id) }}" 
+                               class="text-blue-600 hover:text-blue-900 text-xs">
+                                รายชื่อผู้ได้รับใบประกาศ
+                            </a>
+                        </td>
+                        <td class="px-5 py-5 border-b border-gray-200 text-sm">
                             <div class="flex items-center space-x-2">
                                 <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
-                                    {{ $activity->participants->count() }} คน
+                                  
                                 </span>
                                 <button onclick="openParticipantsModal({{ $activity->activity_id }})" 
                                         class="text-blue-600 hover:text-blue-900 text-xs">
@@ -97,10 +110,8 @@
                                     <button type="submit" class="text-red-600 hover:text-red-900 text-xs" 
                                             onclick="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบกิจกรรมนี้?')">ลบ</button>
                                 </form>
-                                <a href="{{ route('generate-certificates', $activity->activity_id) }}" 
-                                   class="text-green-600 hover:text-green-900 text-xs">สร้างใบประกาศ</a>
-                                <a href="{{ route('view-certificates', $activity->activity_id) }}" 
-                                   class="text-purple-600 hover:text-purple-900 text-xs">ดูใบประกาศ</a>
+                                <a href="{{ route('add-certificate', $activity->activity_id) }}" 
+                                   class="text-indigo-600 hover:text-indigo-900 text-xs">เพิ่มใบประกาศ
                             </div>
                         </td>
                     </tr>
@@ -115,13 +126,17 @@
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3 text-center">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">อัพโหลดรายชื่อผู้เข้าร่วม</h3>
-            <form id="participants-form" method="POST" enctype="multipart/form-data">
+            <form id="participants-form" 
+                method="POST" 
+                enctype="multipart/form-data">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">ไฟล์ Excel (.xlsx, .xls, .csv)</label>
                     <input type="file" name="participants_file" accept=".xlsx,.xls,.csv" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    <p class="text-xs text-gray-500 mt-1">คอลัมน์ที่ต้องมี: name (ชื่อ), email (อีเมล), student_id (รหัสนักศึกษา)</p>
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <p class="text-xs text-gray-500 mt-1">
+                        คอลัมน์ที่ต้องมี: name (ชื่อ), email (อีเมล), student_id (รหัสนักศึกษา)
+                    </p>
                 </div>
                 <div class="flex justify-center space-x-4">
                     <button type="button" onclick="closeParticipantsModal()" 
@@ -136,7 +151,9 @@
 
 <script>
 function openParticipantsModal(activityId) {
-    document.getElementById('participants-form').action = `/activities/${activityId}/upload-participants`;
+    // ✅ ใช้ Laravel route helper
+    const uploadUrl = "{{ route('upload-participants', ':id') }}".replace(':id', activityId);
+    document.getElementById('participants-form').action = uploadUrl;
     document.getElementById('participants-modal').classList.remove('hidden');
 }
 

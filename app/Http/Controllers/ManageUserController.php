@@ -44,13 +44,16 @@ class ManageUserController extends Controller
         $user = User::findOrFail($id);
         return view('advancedmanagent.Edituser', compact('user'));
     }
+
+
     public function updateuser(Request $request, $id)
     {
         $user = User::findOrFail($id);
         
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->user_id.',user_id',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->user_id . ',user_id',
+            'password' => 'nullable|string|min:6', // ✅ เปลี่ยนเป็น nullable และเพิ่ม min
             'role' => 'required|in:admin,manager',
         ]);
 
@@ -58,14 +61,14 @@ class ManageUserController extends Controller
         $user->email = $validatedData['email'];
         $user->role = $validatedData['role'];
 
-        if ($request->input('password')) {
-        $request->validate(['password' => 'string']);
-            $user->password = Hash::make($request->input('password'));
+        // ✅ อัปเดต password เฉพาะเมื่อมีการกรอกเท่านั้น
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
         }
 
         $user->save();
 
-        return redirect()->route('ManageUser')->with('success', 'ผู้ใช้งานถูกแก้ไขเรียบร้อยแล้ว.');
+        return redirect()->route('ManageUser')->with('success', 'แก้ไขผู้ใช้งานเรียบร้อยแล้ว');
     }
 
     /**

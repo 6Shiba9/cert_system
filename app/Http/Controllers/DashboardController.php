@@ -10,6 +10,7 @@ use App\Models\Agency;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -21,9 +22,9 @@ class DashboardController extends Controller
         $totalParticipants = Participant::count();
         $totalDownloads = DownloadLog::count();
         
-        // Recent activities
-        $recentActivities = Activity::with(['agency', 'branch', 'user'])
-            ->orderBy('created_at', 'desc')
+        // Recent activities - เรียงตาม activity_id แทน created_at
+        $recentActivities = Activity::with(['user'])
+            ->orderBy('activity_id', 'desc')
             ->take(5)
             ->get();
         
@@ -34,15 +35,15 @@ class DashboardController extends Controller
             Carbon::now()->endOfWeek()
         ])->count();
         
-        // Top activities by downloads
+        // Top activities by participants count
         $topActivities = Activity::withCount('participants')
-            ->with(['agency', 'branch'])
             ->orderBy('participants_count', 'desc')
             ->take(5)
             ->get();
         
-        // Recent download logs
+        // Recent download logs - ต้อง eager load ทั้ง participant และ activity
         $recentDownloads = DownloadLog::with(['participant.activity'])
+            ->whereHas('participant') // เอาเฉพาะที่มี participant
             ->orderBy('downloaded_at', 'desc')
             ->take(10)
             ->get();
@@ -83,34 +84,49 @@ class DashboardController extends Controller
 
     public function showActivityDetails($activityId)
     {
+        // ดึงข้อมูล activity พร้อม relationships ที่จำเป็น
         $activity = Activity::with([
-            'agency', 
-            'branch', 
-            'user', 
-            'participants.downloadLogs'
+            'user',
+            'participants'
         ])->findOrFail($activityId);
         
+        // คำนวณสถิติการดาวน์โหลด
         $downloadStats = [
-            'total_participants' => $activity->participants->count(),
-            'downloaded' => $activity->participants->whereNotNull('downloaded_at')->count(),
-            'not_downloaded' => $activity->participants->whereNull('downloaded_at')->count(),
+            'total' => DownloadLog::whereHas('participant', function($query) use ($activityId) {
+                $query->where('activity_id', $activityId);
+            })->count(),
+            
+            'unique_users' => DownloadLog::whereHas('participant', function($query) use ($activityId) {
+                $query->where('activity_id', $activityId);
+            })->distinct('participant_id')->count('participant_id'),
+            
+            'today' => DownloadLog::whereHas('participant', function($query) use ($activityId) {
+                $query->where('activity_id', $activityId);
+            })->whereDate('downloaded_at', today())->count(),
         ];
         
+        // ข้อมูลการดาวน์โหลดรายวัน (30 วันล่าสุด)
         $dailyDownloads = DownloadLog::whereHas('participant', function($query) use ($activityId) {
                 $query->where('activity_id', $activityId);
             })
-            ->selectRaw('DATE(downloaded_at) as date, COUNT(*) as count')
+            ->selectRaw('DATE(downloaded_at) as date, COUNT(*) as downloads')
+            ->where('downloaded_at', '>=', Carbon::now()->subDays(30))
             ->groupBy('date')
-            ->orderBy('date', 'desc')
-            ->take(30)
-            ->get();
+            ->orderBy('date', 'asc')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'date' => Carbon::parse($item->date)->format('d/m'),
+                    'downloads' => $item->downloads
+                ];
+            });
         
-        return view('dashboard.activity_details', compact('activity', 'downloadStats', 'dailyDownloads'));
+        return view('dashboard.activity-details', compact('activity', 'downloadStats', 'dailyDownloads'));
     }
 
     public function exportDownloadLog(Request $request)
     {
-        $query = DownloadLog::with(['participant.activity']);
+        $query = DownloadLog::with(['participant']);
         
         if ($request->activity_id) {
             $query->whereHas('participant', function($q) use ($request) {
@@ -128,21 +144,24 @@ class DashboardController extends Controller
         
         $logs = $query->orderBy('downloaded_at', 'desc')->get();
         
-        $csvData = "วันที่ดาวน์โหลด,กิจกรรม,ชื่อผู้เข้าร่วม,IP Address,User Agent\n";
+        // เพิ่ม BOM สำหรับ UTF-8
+        $csvData = "\xEF\xBB\xBF";
+        $csvData .= "วันที่ดาวน์โหลด,ชื่อผู้เข้าร่วม,อีเมล,รหัสนักศึกษา,IP Address,User Agent\n";
         
         foreach ($logs as $log) {
             $csvData .= sprintf(
-                "%s,%s,%s,%s,%s\n",
+                '"%s","%s","%s","%s","%s","%s"' . "\n",
                 $log->downloaded_at->format('Y-m-d H:i:s'),
-                $log->participant->activity->activity_name,
-                $log->participant->name,
-                $log->ip_address,
-                $log->user_agent
+                $log->participant->name ?? 'N/A',
+                $log->participant->email ?? 'N/A',
+                $log->participant->student_id ?? 'N/A',
+                $log->ip_address ?? 'N/A',
+                str_replace('"', '""', $log->user_agent ?? 'N/A')
             );
         }
         
         return response($csvData)
             ->header('Content-Type', 'text/csv; charset=UTF-8')
-            ->header('Content-Disposition', 'attachment; filename="download_log_' . date('Y-m-d') . '.csv"');
+            ->header('Content-Disposition', 'attachment; filename="download_log_' . date('Y-m-d_His') . '.csv"');
     }
 }
