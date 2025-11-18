@@ -9,21 +9,24 @@ use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\DashboardController;
 
 // PUBLIC ROUTES
-Route::get('/', function () {
-    return view('certificate.access');
-});
+Route::get('/', [CertificateController::class, 'userDashboard'])->name('user.dashboard');
+
 
 // Public Routes (ผู้เข้าร่วมเข้าได้)
-Route::get('/certificate', [CertificateController::class, 'showCertificateForm'])
-    ->name('certificate.form');
-Route::post('/certificate/access', [CertificateController::class, 'accessCertificate'])
-    ->name('certificate.access');
+Route::get('user/certificate', [CertificateController::class, 'showCertificateForm'])->name('certificate.form');
+Route::post('user/certificate/access', [CertificateController::class, 'accessCertificate'])->name('certificate.access');
+
 // ✅ แสดง PDF ในเบราว์เซอร์
-Route::get('/certificate/pdf/{token}', [CertificateController::class, 'viewCertificatePdf'])
-    ->name('certificate.pdf');
+Route::get('user/certificate/pdf/{token}', [CertificateController::class, 'viewCertificatePdf'])->name('certificate.pdf');
+
 // ✅ ดาวน์โหลด PDF
-Route::get('/certificate/pdf/{token}/download', [CertificateController::class, 'downloadCertificatePdf'])
-    ->name('certificate.pdf.download');
+Route::get('user/certificate/pdf/{token}/download', [CertificateController::class, 'downloadCertificatePdf'])->name('certificate.pdf.download');
+
+//หน้้าผู้ใช้ทั่วไป
+Route::get('/user', [CertificateController::class, 'userDashboard'])->name('user.dashboard');
+Route::get('/certificate/select/{accessCode}', [CertificateController::class, 'selectParticipant'])->name('certificate.select');
+
+
 
 
 // Login
@@ -39,7 +42,7 @@ Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware(['auth'])->group(function () {
     Route::middleware('role:admin,manager')->group(function () {    
         // manager route
-        Route::get('/manager', function () {return view('manage.manager');})->name('manager');
+        Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
 
         // Activity management routes
         Route::get('/add-activity', [ActivityController::class, 'showCreateActivity'])->name('add-activity');
@@ -61,6 +64,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/activities/{id}/preview-certificate', [CertificateController::class, 'previewCertificate'])->name('certificate.preview');
         Route::get('/activities/{id}/certificates', [CertificateController::class, 'showActivityCertificates'])->name('activity.certificates');
         
+        // Routes สำหรับจัดการผู้เข้าร่วม
+        Route::get('/activity/{id}/certificates', [ActivityController::class, 'showCertificates'])->name('activity.certificates');
+        Route::post('/activity/{id}/participants/add', [ActivityController::class, 'addParticipant'])->name('participant.add');
+        Route::put('/participant/{id}/update', [ActivityController::class, 'updateparticipant'])->name('participant.update');
+        Route::delete('/participant/{id}/delete', [ActivityController::class, 'deleteParticipant'])->name('participant.delete');
+        Route::post('/activity/{id}/participants/upload', [ActivityController::class, 'uploadParticipants'])->name('participants.upload');
+
         // API routes for dynamic dropdowns
         Route::get('/api/branches/{agencyId}', [ActivityController::class, 'getBranchesByAgency']);
         

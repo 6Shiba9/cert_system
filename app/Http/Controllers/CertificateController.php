@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Activity;
 use App\Models\Participant;
 use App\Models\DownloadLog;
+use App\Models\User;
+use App\Models\Agency;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Dompdf\Dompdf;
@@ -174,13 +176,30 @@ class CertificateController extends Controller
         ]);
     }
 
-    /**
-     * แสดงรายการผู้เข้าร่วมพร้อมลิงก์ใบประกาศ
-     */
-    public function showActivityCertificates($activityId)
+
+        public function userDashboard(Request $request)
     {
-        $activity = Activity::with(['participants.downloadLogs'])->findOrFail($activityId);
+    $activities = Activity::with(['agency', 'participants'])
+                     ->where('is_active', true)
+                     ->orderBy('activity_id', 'desc')
+                     ->get();
+    
+    // dd($activities); // ← ลบบรรทัดนี้ออก
+    
+    return view('certificate.main_user_menu', compact('activities'));
+    }
+
+    public function selectParticipant($accessCode)
+    {
+        $activity = Activity::where('access_code', $accessCode)
+                        ->where('is_active', true)
+                        ->with(['agency', 'participants'])
+                        ->firstOrFail();
         
-        return view('certificate.activity_certificates', compact('activity'));
+        $participants = $activity->participants()
+                                ->orderBy('name', 'asc')
+                                ->get();
+        
+        return view('certificate.select-participant', compact('activity', 'participants'));
     }
 }

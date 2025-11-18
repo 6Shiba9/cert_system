@@ -12,11 +12,15 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ParticipantsImport;
+use Illuminate\Support\Facades\Auth;
 
 class ActivityController extends Controller
 {
     public function showCreateActivity()
     {
+        
+
+
         $agencies = Agency::with('branches')->get();
         $branches = Branches::all();
         return view('actitvity.CreateActivity', compact('agencies', 'branches'));
@@ -52,9 +56,16 @@ class ActivityController extends Controller
 
     public function showManageActivities()
     {
-        $activities = Activity::with(['agency', 'branch', 'user'])
+        $user = Auth::user();
+
+        if ($user->role === 'admin') {
+            $activities = Activity::with(['agency', 'branch', 'user','participants'])
             ->get();
-        
+        } else {
+        $activities = Activity::with(['agency', 'branch', 'user'])
+            ->where('user_id', $user->user_id)
+            ->get();
+        }
         return view('actitvity.ManageActivities', compact('activities'));
     }
 
@@ -67,7 +78,7 @@ class ActivityController extends Controller
     //     'all_data' => $request->all(),
     // ]);
 
-         // Validate
+        // Validate
     $request->validate([
         'activity_id' => 'required|exists:activity,activity_id',
         'certificate_img' => 'required|image|mimes:png,jpg,jpeg|max:2048',
@@ -188,49 +199,6 @@ class ActivityController extends Controller
         return redirect()->route('manage-activities')->with('success', 'กิจกรรมถูกลบเรียบร้อยแล้ว');
     }
 
-//    public function uploadParticipants(Request $request, $id)
-//     {
-//         $activity = Activity::findOrFail($id);
-        
-//         $request->validate([
-//             'participants_file' => 'required|file|mimes:xlsx,xls,csv|max:2048'
-//         ]);
-
-//         try {
-//             $file = $request->file('participants_file');
-            
-//             Log::info('File upload details:', [
-//                 'original_name' => $file->getClientOriginalName(),
-//                 'mime_type' => $file->getMimeType(),
-//                 'size' => $file->getSize(),
-//                 'extension' => $file->getClientOriginalExtension()
-//             ]);
-            
-//             // Import participants
-//             $import = new ParticipantsImport($activity->activity_id);
-//             Excel::import($import, $file);
-            
-//             // Count imported participants
-//             $participantCount = Participant::where('activity_id', $activity->activity_id)->count();
-            
-//             Log::info('Participants imported successfully', [
-//                 'activity_id' => $activity->activity_id,
-//                 'total_participants' => $participantCount
-//             ]);
-            
-//             return back()->with('success', "อัพโหลดรายชื่อผู้เข้าร่วมเรียบร้อยแล้ว (จำนวน {$participantCount} คน)");
-            
-//         } catch (\Exception $e) {
-//             Log::error('Participant import error:', [
-//                 'error' => $e->getMessage(),
-//                 'trace' => $e->getTraceAsString()
-//             ]);
-            
-//             return back()->with('error', 'เกิดข้อผิดพลาดในการอัพโหลดไฟล์: ' . $e->getMessage());
-//         }
-//     }
-
-
     public function uploadParticipants(Request $request, $id)
     {
         $activity = Activity::findOrFail($id);
@@ -318,6 +286,11 @@ class ActivityController extends Controller
         return back()->with('success', 'ลบผู้เข้าร่วมเรียบร้อยแล้ว');
     }
 
+        public function showCertificates($id)
+    {
+        $activity = Activity::with(['participants.downloadLogs', 'agency'])->findOrFail($id);
+        return view('certificate.activity_certificates', compact('activity'));
+    }
 
     
     public function getBranchesByAgency($agencyId)

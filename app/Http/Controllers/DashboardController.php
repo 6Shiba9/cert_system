@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -164,4 +165,82 @@ class DashboardController extends Controller
             ->header('Content-Type', 'text/csv; charset=UTF-8')
             ->header('Content-Disposition', 'attachment; filename="download_log_' . date('Y-m-d_His') . '.csv"');
     }
+
+    /**
+     * Admin Dashboard
+     */
+    public function adminDashboard()
+    {
+        $user = Auth::user();
+        
+        if ($user->role === 'admin') {
+        $totalActivities = Activity::count();
+        $activeActivities = Activity::where('is_active', true)->count();
+        $totalParticipants = Participant::count();
+        $totalCertificates = Participant::where('certificate_generated', true)->count();
+        
+        $activities = Activity::with(['agency', 'branch', 'participants', 'user'])
+                             ->orderBy('activity_id', 'desc')
+                             ->limit(6)
+                             ->get();
+        } else {
+        $totalActivities = Activity::where('user_id', $user->user_id)->count();
+        $activeActivities = Activity::where('user_id', $user->user_id)
+                                    ->where('is_active', true)
+                                    ->count();
+
+        $totalParticipants = Participant::whereHas('activity', function($query) use ($user) {
+            $query->where('user_id', $user->user_id);
+        })->count();
+        
+        $totalCertificates = Participant::whereHas('activity', function($query) use ($user) {
+            $query->where('user_id', $user->user_id);
+        })->where('certificate_generated', true)->count();
+        
+        $activities = Activity::where('user_id', $user->user_id)
+                             ->with(['agency', 'branch', 'participants'])
+                             ->orderBy('activity_id', 'desc')
+                             ->limit(6)
+                             ->get();
+        }
+
+        return view('dashboard.admin-dashboard', compact(
+            'totalActivities',
+            'activeActivities',
+            'totalParticipants',
+            'totalCertificates',
+            'activities'
+        ));
+    }
+    
+    /**
+     * User Dashboard
+     */
+    public function userDashboard()
+    {
+         $activities = Activity::with(['agency', 'branch', 'user'])
+            ->get();
+        
+        return view('dashboard.users-dashboard', compact('activities'));
+    }
+
+    public function dashboard(Request $request)
+{
+    $query = Activity::with(['agency', 'participants'])
+                     ->where('is_active', true)
+                     ->orderBy('created_at', 'desc');
+    
+    // ถ้ามีการค้นหา
+    if ($request->has('search') && $request->search != '') {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('activity_name', 'LIKE', "%{$search}%")
+              ->orWhere('access_code', 'LIKE', "%{$search}%");
+        });
+    }
+    
+    $activities = $query->paginate(12);
+    
+    return view('users-dashboard', compact('activities'));
+}
 }

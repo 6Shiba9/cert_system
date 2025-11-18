@@ -28,7 +28,7 @@ class AuthController extends Controller
 
         if ($user && Hash::check($credentials['password'], $user->password)) {
             Auth::login($user);
-            return redirect()->route('manager');
+            return redirect()->route('admin.dashboard');
         }
 
         // If authentication fails, redirect back with an error message
