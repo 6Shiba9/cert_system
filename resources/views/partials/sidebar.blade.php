@@ -76,21 +76,4 @@
         </a>
         @endif
     </nav>
-
-    <!-- Sidebar Footer -->
-    <div class="pt-6 mt-auto border-t border-gray-200">
-        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 rounded-full p-2">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-800">ต้องการความช่วยเหลือ?</p>
-                    <a href="#" class="text-xs text-blue-600 hover:underline">ติดต่อฝ่ายสนับสนุน</a>
-                </div>
-            </div>
-        </div>
-    </div>
 </aside>

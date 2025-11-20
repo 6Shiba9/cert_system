@@ -13,14 +13,12 @@ use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ParticipantsImport;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ActivityController extends Controller
 {
     public function showCreateActivity()
     {
-        
-
-
         $agencies = Agency::with('branches')->get();
         $branches = Branches::all();
         return view('actitvity.CreateActivity', compact('agencies', 'branches'));
@@ -30,13 +28,12 @@ class ActivityController extends Controller
     {
         $request->validate([
         'activity_name' => 'required|string|max:255',
-        'start_date' => 'required|date',
+        'start_date' => 'required|date|after_or_equal:today',
         'end_date' => 'required|date|after_or_equal:start_date',
         'agency_id' => 'nullable|exists:agency,agency_id',
         'branch_id' => 'nullable|exists:branches,branch_id',
     ]);
 
-        // บันทึกกิจกรรม
         $activity = new Activity();
         $activity->user_id = $request->user_id;
         $activity->activity_name = $request->activity_name;
@@ -48,7 +45,6 @@ class ActivityController extends Controller
         $activity->is_active = true; // ตั้งค่าเริ่มต้นเป็น true
         $activity->save();
 
-        // ✅ หลังจากบันทึกสำเร็จ ให้ไปหน้าเพิ่มใบประกาศ
         return redirect()
             ->route('add-certificate', ['activity_id' => $activity->activity_id])
             ->with('success', 'บันทึกกิจกรรมเรียบร้อย! กรุณาเพิ่มใบประกาศต่อ');
@@ -78,7 +74,6 @@ class ActivityController extends Controller
     //     'all_data' => $request->all(),
     // ]);
 
-        // Validate
     $request->validate([
         'activity_id' => 'required|exists:activity,activity_id',
         'certificate_img' => 'required|image|mimes:png,jpg,jpeg|max:2048',
@@ -88,33 +83,28 @@ class ActivityController extends Controller
 
     $activity = Activity::findOrFail($request->activity_id);
     
-    // 🗑️ ลบไฟล์เก่า (ถ้ามี)
     if ($activity->certificate_img) {
         Storage::disk('public')->delete($activity->certificate_img);
     }
     
-    // 📝 สร้างชื่อไฟล์ที่ไม่ซ้ำ
     $file = $request->file('certificate_img');
     $extension = $file->getClientOriginalExtension(); // jpg, png, jpeg
     $fileName = 'cert_' . $activity->activity_id . '_' . time() . '.' . $extension;
     
-    // 💾 บันทึกไฟล์ไปยัง storage/app/public/certificates/
     $path = $file->storeAs(
-        'certificates',  // โฟลเดอร์
-        $fileName,       // ชื่อไฟล์
-        'public'         // disk (storage/app/public/)
+        'certificates',  
+        $fileName,       
+        'public'         
     );
     
-    // 🗄️ บันทึก path ลงฐานข้อมูล
-    $activity->certificate_img = $path; // เช่น: "certificates/cert_1_1234567890.jpg"
+    $activity->certificate_img = $path; 
     $activity->position_x = $request->position_x;
     $activity->position_y = $request->position_y;
     $activity->save();
 
     return redirect()
-    ->route('manage-activities')
-    ->with('success', 'อัปโหลดใบประกาศสำเร็จ: ' . $fileName);
-    
+        ->route('activity.certificates', ['id' => $activity->activity_id])
+        ->with('success', 'อัปโหลดใบประกาศสำเร็จ! ตอนนี้สามารถเพิ่มรายชื่อผู้เข้าร่วมได้แล้ว');
     }
 
 
@@ -129,9 +119,13 @@ class ActivityController extends Controller
 
     public function updateActivity(Request $request, $id)
 {
+    $activity = Activity::findOrFail($id);
+    $isStarted = now()->gte($activity->start_date);
     $request->validate([
         'activity_name' => 'required|string|max:255',
-        'start_date' => 'required|date',
+        'start_date' => $isStarted 
+            ? 'required|date' // ถ้าเริ่มแล้ว ไม่บังคับต้องเป็นวันนี้
+            : 'required|date|after_or_equal:today', // ถ้ายังไม่เริ่ม บังคับต้องเป็นวันนี้ขึ้นไป,
         'end_date' => 'required|date|after_or_equal:start_date',
         'agency_id' => 'nullable|exists:agency,agency_id',
         'branch_id' => 'nullable|exists:branches,branch_id',
@@ -150,14 +144,12 @@ class ActivityController extends Controller
     $activity->end_date = $request->end_date;
     $activity->is_active = $request->has('is_active') ? 1 : 0;
     
-    // Update certificate if new file uploaded
     if ($request->hasFile('certificate_img')) {
-        // Delete old file
+
         if ($activity->certificate_img) {
             Storage::disk('public')->delete($activity->certificate_img);
         }
         
-        // Save new file
         $file = $request->file('certificate_img');
         $extension = $file->getClientOriginalExtension();
         $fileName = 'cert_' . $activity->activity_id . '_' . time() . '.' . $extension;
@@ -166,7 +158,6 @@ class ActivityController extends Controller
         $activity->certificate_img = $path;
     }
     
-    // Update position if provided
     if ($request->filled('position_x') && $request->filled('position_y')) {
         $activity->position_x = $request->position_x;
         $activity->position_y = $request->position_y;
@@ -199,6 +190,14 @@ class ActivityController extends Controller
         return redirect()->route('manage-activities')->with('success', 'กิจกรรมถูกลบเรียบร้อยแล้ว');
     }
 
+    // ================= Participant Management =================//
+
+    public function showUploadParticipants($activityId)
+    {
+        $activity = Activity::with(['participants.downloadLogs', 'agency'])->findOrFail($activityId);
+        return view('actitvity.activity_certificates', compact('activity'));
+    }
+
     public function uploadParticipants(Request $request, $id)
     {
         $activity = Activity::findOrFail($id);
@@ -216,29 +215,27 @@ class ActivityController extends Controller
                 'size' => $file->getSize(),
                 'extension' => $file->getClientOriginalExtension()
             ]);
-            
-            // ✅ เพิ่ม: เช็คก่อน import
-            Log::info('🚀 เริ่ม import', ['activity_id' => $activity->activity_id]);
-            
+
+            // นับจำนวนผู้เข้าร่วมก่อนอัพโหลด
+            $beforeCount = Participant::where('activity_id', $activity->activity_id)->count();
+
             $import = new ParticipantsImport($activity->activity_id);
             Excel::import($import, $file);
+
+            // นับจำนวนผู้เข้าร่วมหลังอัพโหลด
+            $afterCount = Participant::where('activity_id', $activity->activity_id)->count();
+            $actualImported = $afterCount - $beforeCount;
+            $skipped = $import->getSkippedCount();
             
-            // ✅ เพิ่ม: เช็คหลัง import
-            Log::info('✅ Import เสร็จแล้ว', ['imported_count' => $import->getImportedCount()]);
+            $message = "อัพโหลดเรียบร้อยแล้ว: เพิ่มใหม่ {$actualImported} คน";
+            if ($skipped > 0) {
+                $message .= " | ข้ามข้อมูลซ้ำ {$skipped} คน";
+            }
+            $message .= " | รวมทั้งหมด {$afterCount} คน";
             
-            // Count from database
-            $participantCount = Participant::where('activity_id', $activity->activity_id)->count();
-            
-            Log::info('📊 Database count:', ['total_participants' => $participantCount]);
-            
-            return back()->with('success', "อัพโหลดรายชื่อผู้เข้าร่วมเรียบร้อยแล้ว (จำนวน {$participantCount} คน)");
-            
+            return back()->with('success', $message);
         } catch (\Exception $e) {
-            Log::error('❌ Participant import error:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+            Log::error('❌ Error uploading participants:', ['message' => $e->getMessage()]);
             return back()->with('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
     }
@@ -247,12 +244,23 @@ class ActivityController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'student_id' => [
+                'required',
+                'string',
+                'max:255',
+                // ตรวจสอบว่ารหัสนักศึกษาซ้ำในกิจกรรมเดียวกันหรือไม่
+                Rule::unique('participants', 'student_id')
+                    ->where('activity_id', $activityId)
+            ],
+            'email' => 'nullable|email|max:255',
         ]);
 
         $participant = new Participant();
         $participant->activity_id = $activityId;
         $participant->name = $request->name;
-        $participant->certificate_token = Participant::generateCertificateToken();
+        $participant->email = $request->email;
+        $participant->certificate_token = Participant::generateToken();
+        $participant->student_id = $request->student_id;
         $participant->save();
 
         return back()->with('success', 'เพิ่มผู้เข้าร่วมเรียบร้อยแล้ว');
@@ -285,14 +293,7 @@ class ActivityController extends Controller
 
         return back()->with('success', 'ลบผู้เข้าร่วมเรียบร้อยแล้ว');
     }
-
-        public function showCertificates($id)
-    {
-        $activity = Activity::with(['participants.downloadLogs', 'agency'])->findOrFail($id);
-        return view('certificate.activity_certificates', compact('activity'));
-    }
-
-    
+ 
     public function getBranchesByAgency($agencyId)
     {
         $branches = Branches::where('agency_id', $agencyId)->get();

@@ -79,12 +79,29 @@ class ManageUserController extends Controller
      */
     public function deleteuser($id)
     {
-        $user = User::find($id);
-        if ($user) {
-            $user->delete();
-            return redirect()->route('ManageUser')->with('success', 'User deleted successfully.');
-        }
 
-        return redirect()->route('ManageUser')->with('error', 'ไม่พบผู้ใช้งานที่ต้องการลบ.');
+        $user = User::find($id);
+
+            if (!$user) {
+                return redirect()->route('ManageUser')
+                    ->with('error', 'ไม่พบผู้ใช้งานที่ต้องการลบ.');
+            }
+
+            // 🔒 ห้ามลบ Admin หลัก (ID 1)
+            if ($id == 1) {
+                return redirect()->route('ManageUser')
+                    ->with('error', 'ไม่สามารถลบผู้ดูแลระบบหลักได้.');
+            }
+
+            // 🔒 ป้องกันไม่ให้ลบตัวเอง (กันพลาด)
+            if (auth()->id() == $id) {
+                return redirect()->route('ManageUser')
+                    ->with('error', 'คุณไม่สามารถลบบัญชีของตนเองได้.');
+            }
+
+            $user->delete();
+
+            return redirect()->route('ManageUser')
+                ->with('success', 'User deleted successfully.');
     }
 }

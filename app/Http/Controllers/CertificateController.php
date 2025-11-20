@@ -5,64 +5,85 @@ namespace App\Http\Controllers;
 use App\Models\Activity;
 use App\Models\Participant;
 use App\Models\DownloadLog;
-use App\Models\User;
-use App\Models\Agency;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Routing\Controller;
 use Dompdf\Dompdf;
 use Dompdf\Options;
-
+use Dompdf\FontMetrics;
+use Illuminate\Support\Facades\Log;
 class CertificateController extends Controller
 {
-    /**
-     * แสดงใบประกาศเป็น PDF (ไม่เก็บไฟล์ - สร้างทุกครั้ง)
-     * URL: /certificate/pdf/{token}
-     */
+        private function createPdfWithThaiFont($html, $participant)
+    {
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isFontSubsettingEnabled', false); // ปิด subsetting
+        $options->set('defaultFont', 'thsarabunnew'); // ใช้ตัวพิมพ์เล็กทั้งหมด
+        $options->set('defaultMediaType', 'print');
+        $options->set('isCssFloatEnabled', true);
+        $options->set('isPhpEnabled', false);
+        
+        // กำหนด path
+        $fontDir = public_path('fonts');
+        $fontCache = storage_path('fonts');
+        
+        // สร้างโฟลเดอร์ถ้ายังไม่มี
+        if (!File::exists($fontCache)) {
+            File::makeDirectory($fontCache, 0755, true);
+        }
+        
+        $options->set('fontDir', $fontDir);
+        $options->set('fontCache', $fontCache);
+        $options->set('tempDir', storage_path('app/temp'));
+        $options->set('chroot', [public_path(), storage_path()]);
+        
+        // สร้าง Dompdf instance
+        $dompdf = new Dompdf($options);
+        
+        // โหลด HTML
+        $dompdf->loadHtml($html);
+        
+        // ตั้งค่ากระดาษ
+        $dompdf->setPaper('A4', 'landscape');
+        
+        // Render
+        $dompdf->render();
+        
+        return $dompdf;
+    }
+
     public function viewCertificatePdf($token)
     {
         $participant = Participant::where('certificate_token', $token)->firstOrFail();
         $activity = $participant->activity;
 
-        // เช็คว่ากิจกรรมเปิดอยู่หรือไม่
         if (!$activity->is_active) {
             abort(404, 'กิจกรรมนี้ปิดการใช้งานแล้ว');
         }
 
-        // บันทึก Log การเข้าชม
         DownloadLog::create([
             'participant_id' => $participant->participant_id,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'downloaded_at' => now(),
         ]);
-
-        // สร้าง HTML สำหรับ PDF
+        
+        // สร้าง HTML
         $html = view('certificate.template_pdf', [
             'activity' => $activity,
             'participant' => $participant,
         ])->render();
 
-        // ตั้งค่า Dompdf
-        $options = new Options();
-        $options->set('isRemoteEnabled', true); // โหลดรูปจาก URL ได้
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isFontSubsettingEnabled', true);
-        
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape'); // แนวนอน
-        $dompdf->render();
+        // สร้าง PDF พร้อมฟอนต์ไทย
+        $dompdf = $this->createPdfWithThaiFont($html, $participant);
 
-        // ✅ แสดง PDF ในเบราว์เซอร์ (ไม่ดาวน์โหลด)
         return $dompdf->stream("certificate_{$participant->name}.pdf", [
-            "Attachment" => false // false = เปิดดู, true = ดาวน์โหลด
+            "Attachment" => false
         ]);
     }
 
-    /**
-     * ดาวน์โหลดใบประกาศเป็น PDF
-     * URL: /certificate/pdf/{token}/download
-     */
     public function downloadCertificatePdf($token)
     {
         $participant = Participant::where('certificate_token', $token)->firstOrFail();
@@ -80,68 +101,35 @@ class CertificateController extends Controller
             'downloaded_at' => now(),
         ]);
 
-        // สร้าง PDF
+        // สร้าง HTML
         $html = view('certificate.template_pdf', [
             'activity' => $activity,
             'participant' => $participant,
         ])->render();
 
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('isHtml5ParserEnabled', true);
-        
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
-        $dompdf->render();
+        // สร้าง PDF พร้อมฟอนต์ไทย
+        $dompdf = $this->createPdfWithThaiFont($html, $participant);
 
-        // ✅ ดาวน์โหลด PDF
         return $dompdf->stream("certificate_{$participant->name}.pdf", [
             "Attachment" => true
         ]);
     }
 
-    /**
-     * แสดงฟอร์มค้นหาใบประกาศ
-     */
-    public function showCertificateForm()
+    // แสดงหน้า Preview Certificate
+    public function showPreviewCertificate($activityId)
     {
-        return view('certificate.access');
-    }
-
-    /**
-     * ค้นหาใบประกาศจากรหัสและชื่อ
-     */
-    public function accessCertificate(Request $request)
-    {
-        $request->validate([
-            'access_code' => 'required|string',
-            'name' => 'required|string',
-        ]);
-
-        $activity = Activity::where('access_code', $request->access_code)
-                           ->where('is_active', true)
-                           ->first();
-
-        if (!$activity) {
-            return back()->with('error', 'รหัสเข้าถึงไม่ถูกต้องหรือกิจกรรมปิดการใช้งาน');
+        $activity = Activity::with(['agency', 'branch'])->findOrFail($activityId);
+        
+        if (!$activity->certificate_img) {
+            return redirect()
+                ->route('add-certificate', $activity->activity_id)
+                ->with('error', 'กรุณาอัพโหลดใบประกาศก่อน');
         }
 
-        $participant = $activity->participants()
-                               ->where('name', 'LIKE', '%' . $request->name . '%')
-                               ->first();
-
-        if (!$participant) {
-            return back()->with('error', 'ไม่พบชื่อของคุณในกิจกรรมนี้');
-        }
-
-        // Redirect ไปแสดง PDF
-        return redirect()->route('certificate.pdf', $participant->certificate_token);
+        return view('certificate.preview_certificate', compact('activity'));
     }
 
-    /**
-     * แสดงตัวอย่างใบประกาศ (สำหรับ Admin)
-     */
+    // Generate PDF Preview
     public function previewCertificate($activityId)
     {
         $activity = Activity::findOrFail($activityId);
@@ -150,43 +138,31 @@ class CertificateController extends Controller
             return back()->with('error', 'กรุณาอัพโหลดใบประกาศก่อน');
         }
 
-        // สร้าง Participant จำลอง
         $participant = new Participant([
-            'name' => 'ตัวอย่างชื่อผู้เข้าร่วม',
+            'name' => 'นายตัวอย่าง ทดสอบ',
         ]);
 
-        // สร้าง HTML
         $html = view('certificate.template_pdf', [
             'activity' => $activity,
             'participant' => $participant,
-            'preview' => true, // บอกว่าเป็น preview
+            'preview' => true,
         ])->render();
 
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('isHtml5ParserEnabled', true);
-        
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
-        $dompdf->render();
+        $dompdf = $this->createPdfWithThaiFont($html, $participant);
 
         return $dompdf->stream("preview_certificate.pdf", [
             "Attachment" => false
         ]);
     }
 
-
-        public function userDashboard(Request $request)
+    public function userDashboard(Request $request)
     {
-    $activities = Activity::with(['agency', 'participants'])
+        $activities = Activity::with(['agency', 'participants'])
                      ->where('is_active', true)
                      ->orderBy('activity_id', 'desc')
                      ->get();
-    
-    // dd($activities); // ← ลบบรรทัดนี้ออก
-    
-    return view('certificate.main_user_menu', compact('activities'));
+        
+        return view('certificate.main_user_menu', compact('activities'));
     }
 
     public function selectParticipant($accessCode)
@@ -202,4 +178,116 @@ class CertificateController extends Controller
         
         return view('certificate.select-participant', compact('activity', 'participants'));
     }
+
+    public function showCertificateForm()
+    {
+        return view('certificate.access');
+    }
+
+    public function accessCertificate(Request $request)
+    {
+        $request->validate([
+            'access_code' => 'required|string',
+            'name' => 'required|string',
+        ]);
+
+        $activity = Activity::where('access_code', $request->access_code)
+                        ->where('is_active', true)
+                        ->first();
+
+        if (!$activity) {
+            return back()
+                ->withInput()
+                ->with('error', 'รหัสเข้าถึงไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+        }
+
+        $participant = $activity->participants()
+                            ->where('name', 'LIKE', '%' . $request->name . '%')
+                            ->first();
+
+        if (!$participant) {
+            return back()
+                ->withInput()
+                ->with('error', 'ไม่พบชื่อของคุณในระบบ กรุณาตรวจสอบชื่อ-นามสกุลอีกครั้ง');
+        }
+
+        // ถ้ามีรหัสนักศึกษา ให้ไปหน้ายืนยัน
+        if (!empty($participant->student_id)) {
+            return redirect()->route('certificate.verify.form', $participant->certificate_token);
+        }
+
+        // ถ้าไม่มีรหัสนักศึกษา ไปดาวน์โหลดเลย
+        return redirect()->route('certificate.pdf', $participant->certificate_token);
+    }
+
+        /**
+         * แสดงหน้ายืนยันรหัสนักศึกษา
+         */
+        public function showVerifyForm($token)
+        {
+            $participant = Participant::where('certificate_token', $token)->firstOrFail();
+            $activity = $participant->activity;
+
+            if (!$activity->is_active) {
+                abort(404, 'กิจกรรมนี้ปิดการใช้งานแล้ว');
+            }
+
+            return view('certificate.verify-student', compact('participant', 'activity'));
+        }
+
+        public function verifyStudent(Request $request, $token)
+        {
+            $request->validate([
+                'student_id' => 'required|string',
+            ]);
+
+            $participant = Participant::where('certificate_token', $token)->firstOrFail();
+            $activity = $participant->activity;
+
+            if (!$activity->is_active) {
+                abort(404, 'กิจกรรมนี้ปิดการใช้งานแล้ว');
+            }
+
+            // ตรวจสอบรหัสนักศึกษา
+            $inputStudentId = trim($request->student_id);
+            $actualStudentId = trim($participant->student_id);
+
+            // นับจำนวนครั้ง
+            $sessionKey = 'verify_attempts_' . $token;
+            $attempts = session($sessionKey, 0);
+            $attempts++;
+            session([$sessionKey => $attempts]);
+
+            // จำกัด 5 ครั้ง
+            if ($attempts > 5) {
+                return back()
+                    ->with('error', '⚠️ คุณพยายามยืนยันเกิน 5 ครั้ง กรุณาติดต่อผู้จัดกิจกรรม')
+                    ->with('attempts', $attempts);
+            }
+
+            // ถ้าไม่มีรหัสในระบบ ให้ผ่าน
+            if (empty($actualStudentId)) {
+                session()->forget($sessionKey);
+                return redirect()->route('certificate.pdf', $token);
+            }
+
+            // ตรวจสอบรหัส
+            if ($inputStudentId !== $actualStudentId) {
+                return back()
+                    ->with('error', '❌ รหัสนักศึกษาไม่ถูกต้อง (พยายาม ' . $attempts . '/5 ครั้ง)')
+                    ->with('attempts', $attempts)
+                    ->withInput();
+            }
+
+            // ✅ สำเร็จ - บันทึก Log
+            DownloadLog::create([
+                'participant_id' => $participant->participant_id,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'downloaded_at' => now(),
+            ]);
+
+            session()->forget($sessionKey);
+            return redirect()->route('certificate.pdf', $token);
+        }
 }

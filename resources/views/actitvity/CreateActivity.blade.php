@@ -59,18 +59,28 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">วันที่เริ่มต้น</label>
-                <input type="date" name="start_date" value="{{ old('start_date') }}"
-                       class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                       required>
+                <input type="date" 
+                    name="start_date" 
+                    id="start_date"
+                    min="{{ date('Y-m-d') }}"
+                    value="{{ old('start_date') }}"
+                    class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required>
+                <p class="text-xs text-gray-500 mt-1">ไม่สามารถเลือกวันที่ย้อนหลังได้</p>
                 @error('start_date')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">วันที่สิ้นสุด</label>
-                <input type="date" name="end_date" value="{{ old('end_date') }}"
-                       class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                       required>
+                <input type="date" 
+                    name="end_date" 
+                    id="end_date"
+                    min="{{ date('Y-m-d') }}"
+                    value="{{ old('end_date') }}"
+                    class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required>
+                <p class="text-xs text-gray-500 mt-1">ต้องเท่ากับหรือหลังวันที่เริ่มต้น</p>
                 @error('end_date')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -100,6 +110,16 @@
 </div>
 
 <script>
+// เมื่อเลือกวันที่เริ่มต้น ให้ปรับ min ของวันที่สิ้นสุด
+document.getElementById('start_date').addEventListener('change', function() {
+    const endDateInput = document.getElementById('end_date');
+    endDateInput.min = this.value;
+    
+    // ถ้าวันที่สิ้นสุดน้อยกว่าวันที่เริ่มต้น ให้รีเซ็ต
+    if (endDateInput.value && endDateInput.value < this.value) {
+        endDateInput.value = this.value;
+    }
+});    
 const agencies = @json($agencies);
 document.addEventListener("DOMContentLoaded", function () {
     const agencySelect = document.getElementById("agency_id");

@@ -344,11 +344,11 @@
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="font-bold">•</span>
-                        <span><strong>คอลัมน์ B:</strong> email (อีเมล) - ถ้ามี</span>
+                        <span><strong>คอลัมน์ B:</strong> email (อีเมล) - บังคับ</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="font-bold">•</span>
-                        <span><strong>คอลัมน์ C:</strong> student_id (รหัสนักศึกษา) - ถ้ามี</span>
+                        <span><strong>คอลัมน์ C:</strong> student_id (รหัสนักศึกษา) - บังคับ</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="font-bold">•</span>
@@ -377,7 +377,7 @@
 <!-- Scripts -->
 <script>
 function openParticipantsModal(activityId) {
-    const uploadUrl = "{{ route('upload-participants', ':id') }}".replace(':id', activityId);
+    const uploadUrl = "{{ route('participants.upload', ':id') }}".replace(':id', activityId);
     document.getElementById('participants-form').action = uploadUrl;
     document.getElementById('participants-modal').classList.remove('hidden');
 }

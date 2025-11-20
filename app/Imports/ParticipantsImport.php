@@ -11,127 +11,97 @@ use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithUpserts;
 use Illuminate\Support\Facades\Log;
 
-class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, WithBatchInserts, WithChunkReading
+class ParticipantsImport implements 
+    ToModel, 
+    WithHeadingRow, 
+    WithValidation, 
+    SkipsOnError, 
+    WithBatchInserts, 
+    WithChunkReading,
+    WithUpserts  // เพิ่มนี้
 {
     use Importable, SkipsErrors;
     
     protected $activityId;
     protected $imported = 0;
+    protected $skipped = 0;
 
     public function __construct($activityId)
     {
         $this->activityId = $activityId;
     }
 
-    // public function model(array $row)
-    // {
-    //     // Get name from either English or Thai column
-    //     $name = trim($row['name'] ?? $row['ชื่อ'] ?? '');
+    /**
+     * กำหนดคอลัมน์ที่ใช้เป็น unique key
+     */
+    public function uniqueBy()
+    {
+        return ['activity_id', 'student_id'];
+    }
+
+    public function model(array $row)
+    {
+        Log::info('📝 Reading row:', $row);
         
-    //     // Skip empty rows
-    //     if (empty($name)) {
-    //         Log::info('Skipping empty row:', $row);
-    //         return null;
-    //     }
-
-    //     $email = $row['email'] ?? $row['อีเมล'] ?? null;
-    //     $studentId = $row['student_id'] ?? $row['รหัสนักศึกษา'] ?? null;
-
-    //     // Clean up email
-    //     if ($email) {
-    //         $email = trim($email);
-    //         if (empty($email)) {
-    //             $email = null;
-    //         }
-    //     }
-
-    //     // Clean up student ID
-    //     if ($studentId) {
-    //         $studentId = trim($studentId);
-    //         if (empty($studentId)) {
-    //             $studentId = null;
-    //         }
-    //     }
-
-    //     // Log what we're trying to import
-    //     Log::info('Importing participant:', [
-    //         'activity_id' => $this->activityId,
-    //         'name' => $name,
-    //         'email' => $email,
-    //         'student_id' => $studentId
-    //     ]);
-
-    //     $this->imported++;
-
-    //     return new Participant([
-    //         'activity_id' => $this->activityId,
-    //         'name' => $name,
-    //         'email' => $email,
-    //         'student_id' => $studentId,
-    //         'certificate_token' => Participant::generateToken(),
-    //         'certificate_generated' => false,
-    //     ]);
-    // }
-
-public function model(array $row)
-{
-    // ✅ Log ทุกแถวที่อ่านได้
-    Log::info('📝 Reading row:', $row);
-    
-    // Get name from either English or Thai column
-    $name = trim($row['name'] ?? $row['ชื่อ'] ?? '');
-    
-    // Skip empty rows
-    if (empty($name)) {
-        Log::warning('⚠️ Skipping empty row');
-        return null;
-    }
-
-    $email = $row['email'] ?? $row['อีเมล'] ?? null;
-    $studentId = $row['student_id'] ?? $row['รหัสนักศึกษา'] ?? null;
-
-    // Clean up email
-    if ($email) {
-        $email = trim($email);
-        if (empty($email)) {
-            $email = null;
+        $name = trim($row['name'] ?? $row['ชื่อ'] ?? '');
+        
+        if (empty($name)) {
+            Log::warning('⚠️ Skipping empty row');
+            return null;
         }
-    }
 
-    // Clean up student ID
-    if ($studentId) {
-        $studentId = trim($studentId);
-        if (empty($studentId)) {
-            $studentId = null;
+        $email = $row['email'] ?? $row['อีเมล'] ?? null;
+        $studentId = $row['student_id'] ?? $row['รหัสนักศึกษา'] ?? null;
+
+        if ($email) {
+            $email = trim($email);
+            if (empty($email)) $email = null;
         }
+
+        if ($studentId) {
+            $studentId = trim($studentId);
+            if (empty($studentId)) $studentId = null;
+        }
+
+        // ตรวจสอบว่ามีข้อมูลซ้ำหรือไม่
+        $exists = Participant::where('activity_id', $this->activityId)
+            ->where('student_id', $studentId)
+            ->exists();
+
+        if ($exists) {
+            Log::warning('⚠️ Duplicate student_id skipped:', [
+                'student_id' => $studentId,
+                'name' => $name
+            ]);
+            $this->skipped++;
+            return null;
+        }
+
+        Log::info('✅ Creating participant:', [
+            'activity_id' => $this->activityId,
+            'name' => $name,
+            'email' => $email,
+            'student_id' => $studentId
+        ]);
+
+        $this->imported++;
+
+        return new Participant([
+            'activity_id' => $this->activityId,
+            'name' => $name,
+            'email' => $email,
+            'student_id' => $studentId,
+            'certificate_token' => Participant::generateToken(),
+            'certificate_generated' => false,
+        ]);
     }
-
-    Log::info('✅ Creating participant:', [
-        'activity_id' => $this->activityId,
-        'name' => $name,
-        'email' => $email,
-        'student_id' => $studentId
-    ]);
-
-    $this->imported++;
-
-    return new Participant([
-        'activity_id' => $this->activityId,
-        'name' => $name,
-        'email' => $email,
-        'student_id' => $studentId,
-        'certificate_token' => Participant::generateToken(),
-        'certificate_generated' => false,
-    ]);
-}
 
     public function rules(): array
     {
-        return [
-            // Don't validate here, validate in model() method instead
-        ];
+        return [];
     }
 
     public function batchSize(): int
@@ -147,5 +117,10 @@ public function model(array $row)
     public function getImportedCount()
     {
         return $this->imported;
+    }
+
+    public function getSkippedCount()
+    {
+        return $this->skipped;
     }
 }

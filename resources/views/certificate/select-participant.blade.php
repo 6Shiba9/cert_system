@@ -111,7 +111,7 @@
 
             <div id="participantsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @forelse($participants as $participant)
-                <a href="{{ route('certificate.pdf', $participant->certificate_token) }}" 
+                <a href="{{ route('certificate.verify.form', $participant->certificate_token) }}" 
                    class="participant-item group block p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 hover:shadow-lg"
                    data-name="{{ strtolower($participant->name) }}">
                     <div class="flex items-center justify-between">
