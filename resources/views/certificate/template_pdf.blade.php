@@ -61,15 +61,15 @@
             top: {{ ($activity->position_y / 1000) * 100 -2}}%;
             left: {{ ($activity->position_x / 1000) * 100 }}%;
             transform: translate(-50%, -50%);
-            font-size: 39pt;
-            color: #000000;
+            font-size:  {{ ($activity->font_size + 15) ?? 16 }}pt;
+            color: {{ $activity->font_color ?? '#000000' }};
             text-align: center;
             white-space: nowrap;
             font-family: 'THSarabunNew', sans-serif;
             font-weight: bold;
             
             @if(isset($preview) && $preview)
-            color: #FF0000 !important;
+            color: {{ $activity->font_color ?? '#ff0000ff' }} !important;
             @endif
         }
     </style>

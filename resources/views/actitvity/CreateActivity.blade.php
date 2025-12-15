@@ -29,7 +29,7 @@
                 <!-- หน่วยงาน -->
                 <div class="w-1/2">
                     <select name="agency_id" id="agency_id"
-                        class="w-full h-10 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        class="w-full h-10 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 required">
                         <option value="">-- เลือกหน่วยงาน --</option>
                         @foreach($agencies as $agency)
                             <option value="{{ $agency->agency_id }}" {{ old('agency_id') == $agency->agency_id ? 'selected' : '' }}>

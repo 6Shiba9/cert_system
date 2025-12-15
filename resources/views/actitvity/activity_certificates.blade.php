@@ -259,30 +259,54 @@
 
 <!-- Upload Excel Modal -->
 <div id="upload-excel-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
-        <h3 class="text-xl font-bold text-center text-gray-800 mb-6">อัพโหลดรายชื่อจาก Excel</h3>
-        <form action="{{ route('participants.upload', $activity->activity_id) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 relative animate-fadeIn">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                อัพโหลดรายชื่อจาก Excel
+            </h3>
+            <button id="close-upload-modal-btn-x" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- ปุ่มดาวน์โหลดไฟล์ต้นแบบ -->
+        <div class="mb-5">
+            <a href="{{ route('download-template', $activity->activity_id) }}" 
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition shadow-md">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                ดาวน์โหลดไฟล์ต้นแบบ Excel
+            </a>
+        </div>
+
+        <form action="{{ route('participants.upload', $activity->activity_id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf
             
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">เลือกไฟล์ Excel</label>
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition">
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 transition">
                     <input type="file" name="participants_file" id="excel-file" 
                         accept=".xlsx,.xls,.csv"
                         class="hidden"
                         required>
                     <label for="excel-file" class="cursor-pointer">
-                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
-                        <p class="text-sm text-gray-600">คลิกเพื่อเลือกไฟล์</p>
+                        <p class="text-sm font-semibold text-gray-700">คลิกเพื่อเลือกไฟล์</p>
                         <p class="text-xs text-gray-500 mt-1">รองรับ .xlsx, .xls, .csv</p>
                     </label>
                 </div>
                 <p id="file-name" class="text-sm text-gray-600 mt-2 text-center"></p>
             </div>
 
-            <div class="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
                 <p class="text-xs font-bold text-blue-900 mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
@@ -311,12 +335,15 @@
 
             <div class="flex gap-3 mt-6">
                 <button type="submit"
-                    class="w-1/2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
+                    class="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                    </svg>
                     อัพโหลด
                 </button>
                 <button type="button" id="close-upload-modal-btn"
-                    class="w-1/2 px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg hover:bg-gray-500 transition">
-                    ปิด
+                    class="flex-1 px-4 py-3 bg-gray-400 text-white font-semibold rounded-xl hover:bg-gray-500 transition shadow-lg">
+                    ยกเลิก
                 </button>
             </div>
         </form>
@@ -355,82 +382,88 @@
         participantStudentIdInput.value = '';
         participantEmailInput.value = '';
         modal.classList.remove('hidden');
-    });
+        });
 
-    // Open Edit Modal
-    function openEditModal(button) {
-        modalTitle.innerText = 'แก้ไขผู้เข้าร่วม';
-        const id = button.getAttribute('data-id');
-        const name = button.getAttribute('data-name');
-        const studentId = button.getAttribute('data-student-id');
-        const email = button.getAttribute('data-email');
+        // Open Edit Modal
+        function openEditModal(button) {
+            modalTitle.innerText = 'แก้ไขผู้เข้าร่วม';
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            const studentId = button.getAttribute('data-student-id');
+            const email = button.getAttribute('data-email');
 
-        form.action = "{{ route('participant.update', ['id' => ':id']) }}".replace(':id', id);
-        formMethod.value = 'PUT';
-        participantIdInput.value = id;
-        participantNameInput.value = name;
-        participantStudentIdInput.value = studentId || '';
-        participantEmailInput.value = email || '';
+            form.action = "{{ route('participant.update', ['id' => ':id']) }}".replace(':id', id);
+            formMethod.value = 'PUT';
+            participantIdInput.value = id;
+            participantNameInput.value = name;
+            participantStudentIdInput.value = studentId || '';
+            participantEmailInput.value = email || '';
 
-        modal.classList.remove('hidden');
-    }
+            modal.classList.remove('hidden');
+        }
 
-    // Close Modal
-    closeModalBtn.addEventListener('click', () => {
-        modal.classList.add('hidden');
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
+        // Close Modal
+        closeModalBtn.addEventListener('click', () => {
             modal.classList.add('hidden');
-        }
-    });
+        });
 
-    // Upload Excel Modal
-    const uploadExcelBtn = document.getElementById('upload-excel-btn');
-    const uploadModal = document.getElementById('upload-excel-modal');
-    const closeUploadModalBtn = document.getElementById('close-upload-modal-btn');
-    const excelFileInput = document.getElementById('excel-file');
-    const fileNameDisplay = document.getElementById('file-name');
-
-    uploadExcelBtn.addEventListener('click', () => {
-        uploadModal.classList.remove('hidden');
-    });
-
-    closeUploadModalBtn.addEventListener('click', () => {
-        uploadModal.classList.add('hidden');
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === uploadModal) {
-            uploadModal.classList.add('hidden');
-        }
-    });
-
-    excelFileInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            fileNameDisplay.textContent = `📄 ${file.name}`;
-        }
-    });
-
-    // Auto-hide alerts
-    setTimeout(() => {
-        ['alert-success', 'alert-error'].forEach(id => {
-            let alert = document.getElementById(id);
-            if (alert) {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 500);
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.classList.add('hidden');
             }
         });
-    }, 3000);
-        // เปิด modal อัตโนมัติถ้ามี validation error
-    @if($errors->any())
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('add-edit-modal').classList.remove('hidden');
-        });
-    @endif
-</script>
 
+        // Upload Excel Modal
+        const uploadExcelBtn = document.getElementById('upload-excel-btn');
+        const uploadModal = document.getElementById('upload-excel-modal');
+        const closeUploadModalBtn = document.getElementById('close-upload-modal-btn');
+        const closeUploadModalBtnX = document.getElementById('close-upload-modal-btn-x');
+        const excelFileInput = document.getElementById('excel-file');
+        const fileNameDisplay = document.getElementById('file-name');
+
+        uploadExcelBtn.addEventListener('click', () => {
+            uploadModal.classList.remove('hidden');
+        });
+
+        closeUploadModalBtn.addEventListener('click', () => {
+            uploadModal.classList.add('hidden');
+        });
+
+        closeUploadModalBtnX.addEventListener('click', () => {
+            uploadModal.classList.add('hidden');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === uploadModal) {
+                uploadModal.classList.add('hidden');
+            }
+        });
+
+        excelFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                fileNameDisplay.textContent = `📄 ${file.name}`;
+            }
+        });
+
+        // Auto-hide alerts
+        setTimeout(() => {
+            ['alert-success', 'alert-error'].forEach(id => {
+                let alert = document.getElementById(id);
+                if (alert) {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                }
+            });
+        }, 3000);
+
+        // เปิด modal อัตโนมัติถ้ามี validation error
+        @if($errors->any())
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('add-edit-modal').classList.remove('hidden');
+            });
+        @endif
+
+        </script>
 @endsection

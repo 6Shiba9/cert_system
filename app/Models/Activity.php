@@ -32,6 +32,8 @@ class Activity extends Model
         'user_id',
         'access_code',
         'is_active',
+        'font_size',
+        'font_color',
     ];
 
     protected $casts = [

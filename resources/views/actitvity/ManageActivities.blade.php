@@ -246,13 +246,32 @@
                                     </svg>
                                     แก้ไข
                                 </a>
-                                <a href="{{ route('add-certificate', $activity->activity_id) }}" 
-                                   class="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center justify-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                    ใบประกาศ
-                                </a>
+                                @if(!empty($activity->certificate_img))
+                                    {{-- ถ้ามีใบประกาศแล้ว แสดงปุ่มแบบ disabled --}}
+                                    <div class="relative group">
+                                        <button 
+                                            disabled
+                                            class="w-full text-center bg-gray-400 text-white text-xs font-semibold px-3 py-2 rounded-lg cursor-not-allowed flex items-center justify-center gap-1 opacity-60">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            มีใบประกาศแล้ว
+                                        </button>
+                                        {{-- Tooltip เมื่อ hover --}}
+                                        <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap">
+                                            มีใบประกาศในระบบแล้ว
+                                        </div>
+                                    </div>
+                                @else
+                                    {{-- ถ้ายังไม่มีใบประกาศ แสดงปุ่มปกติ --}}
+                                    <a href="{{ route('add-certificate', $activity->activity_id) }}" 
+                                        class="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center justify-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        ใบประกาศ
+                                    </a>
+                                @endif
                                 <form action="{{ route('delete-activity', $activity->activity_id) }}" method="POST" class="w-full">
                                     @csrf
                                     @method('DELETE')
@@ -307,6 +326,17 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
+        </div>
+
+        <!-- ปุ่มดาวน์โหลดไฟล์ต้นแบบ -->
+        <div class="mb-5">
+            <a href="{{ route('download-template', $activity->activity_id) }}" 
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition shadow-md">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                ดาวน์โหลดไฟล์ต้นแบบ Excel
+            </a>
         </div>
 
         <form id="participants-form" method="POST" enctype="multipart/form-data" class="space-y-5">

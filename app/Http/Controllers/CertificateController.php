@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Routing\Controller;
 use Dompdf\Dompdf;
 use Dompdf\Options;
-use Dompdf\FontMetrics;
-use Illuminate\Support\Facades\Log;
 class CertificateController extends Controller
 {
         private function createPdfWithThaiFont($html, $participant)
@@ -63,13 +61,6 @@ class CertificateController extends Controller
             abort(404, 'กิจกรรมนี้ปิดการใช้งานแล้ว');
         }
 
-        DownloadLog::create([
-            'participant_id' => $participant->participant_id,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'downloaded_at' => now(),
-        ]);
-        
         // สร้าง HTML
         $html = view('certificate.template_pdf', [
             'activity' => $activity,

@@ -14,6 +14,10 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ParticipantsImport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class ActivityController extends Controller
 {
@@ -30,7 +34,7 @@ class ActivityController extends Controller
         'activity_name' => 'required|string|max:255',
         'start_date' => 'required|date|after_or_equal:today',
         'end_date' => 'required|date|after_or_equal:start_date',
-        'agency_id' => 'nullable|exists:agency,agency_id',
+        'agency_id' => 'required|exists:agency,agency_id',
         'branch_id' => 'nullable|exists:branches,branch_id',
     ]);
 
@@ -79,6 +83,8 @@ class ActivityController extends Controller
         'certificate_img' => 'required|image|mimes:png,jpg,jpeg|max:2048',
         'position_x' => 'required|integer|min:0',
         'position_y' => 'required|integer|min:0',
+        'font_size' => 'nullable|integer|min:8|max:72',
+        'font_color' => 'nullable|string|max:7',
     ]);
 
     $activity = Activity::findOrFail($request->activity_id);
@@ -91,15 +97,13 @@ class ActivityController extends Controller
     $extension = $file->getClientOriginalExtension(); // jpg, png, jpeg
     $fileName = 'cert_' . $activity->activity_id . '_' . time() . '.' . $extension;
     
-    $path = $file->storeAs(
-        'certificates',  
-        $fileName,       
-        'public'         
-    );
+    $path = $file->storeAs('certificates',$fileName,'public');
     
     $activity->certificate_img = $path; 
     $activity->position_x = $request->position_x;
     $activity->position_y = $request->position_y;
+    $activity->font_size = $request->font_size ?? 16;
+    $activity->font_color = $request->font_color ?? '#000000';
     $activity->save();
 
     return redirect()
@@ -124,14 +128,16 @@ class ActivityController extends Controller
     $request->validate([
         'activity_name' => 'required|string|max:255',
         'start_date' => $isStarted 
-            ? 'required|date' // ถ้าเริ่มแล้ว ไม่บังคับต้องเป็นวันนี้
-            : 'required|date|after_or_equal:today', // ถ้ายังไม่เริ่ม บังคับต้องเป็นวันนี้ขึ้นไป,
+            ? 'required|date' // เริ่มแล้ว - ไม่จำกัด
+            : 'required|date|after_or_equal:today', // ยังไม่เริ่ม - ต้องวันนี้ขึ้นไป
         'end_date' => 'required|date|after_or_equal:start_date',
         'agency_id' => 'nullable|exists:agency,agency_id',
         'branch_id' => 'nullable|exists:branches,branch_id',
         'certificate_img' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
         'position_x' => 'nullable|integer|min:0|max:1000',
         'position_y' => 'nullable|integer|min:0|max:1000',
+        'font_size' => 'nullable|integer|min:8|max:72',
+        'font_color' => 'nullable|string|max:7',
     ]);
 
     $activity = Activity::findOrFail($id);
@@ -142,6 +148,8 @@ class ActivityController extends Controller
     $activity->branch_id = $request->branch_id;
     $activity->start_date = $request->start_date;
     $activity->end_date = $request->end_date;
+    $activity->font_size = $request->font_size ?? 16;
+    $activity->font_color = $request->font_color ?? '#000000';
     $activity->is_active = $request->has('is_active') ? 1 : 0;
     
     if ($request->hasFile('certificate_img')) {
@@ -298,5 +306,80 @@ class ActivityController extends Controller
     {
         $branches = Branches::where('agency_id', $agencyId)->get();
         return response()->json($branches);
+    }
+
+    public function downloadTemplate($activity_id)
+    {
+        $activity = Activity::findOrFail($activity_id);
+        
+        // สร้าง Spreadsheet ใหม่
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // ตั้งชื่อ Sheet
+        $sheet->setTitle('Participants');
+        
+        // กำหนดหัวตาราง
+        $headers = ['name', 'email', 'student_id'];
+        $sheet->fromArray($headers, null, 'A1');
+        
+        // จัดรูปแบบหัวตาราง - พื้นหลังสีม่วง ตัวอักษรสีขาว
+        $headerStyle = [
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'size' => 12
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '4F46E5'] // สี Indigo
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ]
+        ];
+        $sheet->getStyle('A1:C1')->applyFromArray($headerStyle);
+        
+        // ตั้งความกว้างคอลัมน์
+        $sheet->getColumnDimension('A')->setWidth(35);
+        $sheet->getColumnDimension('B')->setWidth(40);
+        $sheet->getColumnDimension('C')->setWidth(20);
+        
+        // เพิ่มข้อมูลตัวอย่าง 2 แถว
+        $exampleData = [
+            ['สมชาย ใจดี', 'somchai@example.com', '6501234567'],
+            ['สมหญิง รักเรียน', 'somying@example.com', '6501234568'],
+        ];
+        $sheet->fromArray($exampleData, null, 'A2');
+        
+        // จัดรูปแบบข้อมูลตัวอย่าง
+        $dataStyle = [
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ]
+        ];
+        $sheet->getStyle('A2:C3')->applyFromArray($dataStyle);
+        
+        // สร้างชื่อไฟล์ตามชื่อกิจกรรม - แก้ไขตรงนี้
+        $activityName = preg_replace('/[^A-Za-z0-9_\-ก-๙\s]/', '', $activity->activity_name);
+        $fileName = $activityName . '_namelist.xlsx';
+        
+        // สร้าง Writer และส่งไฟล์ให้ดาวน์โหลด
+        $writer = new Xlsx($spreadsheet);
+        
+        // ตั้งค่า Headers สำหรับดาวน์โหลด
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        header('Cache-Control: max-age=0');
+        header('Cache-Control: max-age=1');
+        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+        header('Cache-Control: cache, must-revalidate');
+        header('Pragma: public');
+        
+        $writer->save('php://output');
+        exit;
     }
 }

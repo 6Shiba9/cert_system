@@ -72,14 +72,23 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">วันที่เริ่มต้น</label>
+                    @php
+                        $minStartDate = now()->gt($activity->start_date) ? $activity->start_date->format('Y-m-d') : date('Y-m-d');
+                    @endphp
                     <input type="date" 
                         name="start_date" 
                         id="start_date"
-                        min="{{ date('Y-m-d') }}"
+                        min="{{ $minStartDate }}"
                         value="{{ old('start_date', $activity->start_date ? $activity->start_date->format('Y-m-d') : '') }}"
                         class="w-full h-10 px-4 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         required>
-                    <p class="text-xs text-gray-500 mt-1">ไม่สามารถเลือกวันที่ย้อนหลังได้</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        @if(now()->gt($activity->start_date))
+                            กิจกรรมนี้เริ่มไปแล้ว - สามารถแก้ไขได้
+                        @else
+                            ไม่สามารถเลือกวันที่ย้อนหลังได้
+                        @endif
+                    </p>
                     @error('start_date')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
@@ -193,7 +202,74 @@
                     @enderror
                 </div>
             </div>
+            <!-- การตั้งค่าฟอนต์ -->
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                    </svg>
+                    การตั้งค่าฟอนต์
+                </h3>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Font Size -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            ขนาดฟอนต์ (Font Size)
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" 
+                                name="font_size" 
+                                id="font_size" 
+                                min="8" 
+                                max="72" 
+                                value="{{ old('font_size', $activity->font_size ?? 16) }}"
+                                class="flex-1 h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer">
+                            <span id="font_size_display" 
+                                class="w-16 text-center font-bold text-lg bg-white px-3 py-2 rounded-lg border-2 border-purple-300">
+                                {{ old('font_size', $activity->font_size ?? 16) }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">ลากเพื่อปรับขนาด (8-72px)</p>
+                        @error('font_size')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Font Color -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            สีฟอนต์ (Font Color)
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" 
+                                name="font_color" 
+                                id="font_color" 
+                                value="{{ old('font_color', $activity->font_color ?? '#000000') }}"
+                                class="w-16 h-12 rounded-lg border-2 border-purple-300 cursor-pointer">
+                            <input type="text" 
+                                id="font_color_text" 
+                                value="{{ old('font_color', $activity->font_color ?? '#000000') }}"
+                                readonly
+                                class="flex-1 h-12 px-4 rounded-lg border-2 border-purple-300 bg-white font-mono text-center">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">คลิกเพื่อเลือกสี (แนะนำ: #000000 สีดำ)</p>
+                        @error('font_color')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Preview Text -->
+                <div class="mt-4 p-4 bg-white rounded-lg border-2 border-dashed border-purple-300">
+                    <p class="text-sm text-gray-600 mb-2">ตัวอย่างข้อความ:</p>
+                    <p id="font_preview_text" 
+                    style="font-size: {{ old('font_size', $activity->font_size ?? 16) }}px; color: {{ old('font_color', $activity->font_color ?? '#000000') }}; transition: all 0.2s ease;"
+                    class="font-bold text-center">
+                        นายตัวอย่าง ทดสอบภาษาไทย
+                    </p>
+                </div>
+            </div>
             <!-- ปุ่ม -->
             <div class="flex justify-end space-x-4">
                 <a href="{{ route('manage-activities') }}"
@@ -209,6 +285,21 @@
     </div>
 
     <script>
+    // Font Size Slider
+    document.getElementById('font_size').addEventListener('input', function() {
+        const size = this.value;
+        document.getElementById('font_size_display').textContent = size;
+        document.getElementById('font_preview_text').style.fontSize = size + 'px';
+        updatePreviewFromInputs();
+    });
+
+    // Font Color Picker
+    document.getElementById('font_color').addEventListener('input', function() {
+        const color = this.value;
+        document.getElementById('font_color_text').value = color;
+        document.getElementById('font_preview_text').style.color = color;
+        updatePreviewFromInputs();
+    });
     // เพิ่มในส่วน script ที่มีอยู่แล้ว
     document.getElementById('start_date').addEventListener('change', function() {
         const endDateInput = document.getElementById('end_date');
@@ -390,13 +481,20 @@
         
         if (!marker || !previewText) return;
         
+        // Get font settings
+        const fontSize = document.getElementById('font_size') ? document.getElementById('font_size').value : 16;
+        const fontColor = document.getElementById('font_color') ? document.getElementById('font_color').value : '#FF0000';
+        
         marker.style.left = x + 'px';
         marker.style.top = y + 'px';
         marker.classList.remove('hidden');
         
+        // Apply font settings to preview
         previewText.style.left = x + 'px';
         previewText.style.top = (y - 20) + 'px';
         previewText.style.transform = 'translateX(-50%)';
+        previewText.style.fontSize = fontSize + 'px';
+        previewText.style.color = fontColor;
         previewText.classList.remove('hidden');
         
         marker.style.animation = 'pulse 0.3s ease-in-out';

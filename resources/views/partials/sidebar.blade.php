@@ -42,7 +42,13 @@
 
         @if (Auth::user()->role == 'admin')
 
-        <!-- สรุปข้อมูลระบบ -->
+        <!-- Divider -->
+        <div class="pt-4 pb-2">
+            <div class="border-t border-gray-200 mb-2"></div>
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-4">ผู้ดูแลระบบ</p>
+        </div>
+
+                <!-- สรุปข้อมูลระบบ -->
         <a href="{{ route('summary') }}" 
            class="group flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gradient-to-r hover:from-orange-500 hover:to-orange-600 hover:text-white transition-all duration-300 shadow-sm hover:shadow-lg {{ request()->routeIs('summary') ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : '' }}">
             <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,12 +56,6 @@
             </svg>
             <span class="font-semibold">สรุปข้อมูลระบบ</span>
         </a>
-
-        <!-- Divider -->
-        <div class="pt-4 pb-2">
-            <div class="border-t border-gray-200 mb-2"></div>
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-4">ผู้ดูแลระบบ</p>
-        </div>
 
         <!-- จัดการผู้ใช้งาน -->
         <a href="{{ route('ManageUser') }}" 

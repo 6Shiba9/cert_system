@@ -111,6 +111,58 @@
                 @enderror
             </div>
         </div>
+        <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
+            
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                </svg>
+                การตั้งค่าฟอนต์
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Font Size -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        ขนาดฟอนต์ <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <input type="range" 
+                            name="font_size" 
+                            id="font_size" 
+                            min="8" 
+                            max="72" 
+                            value="16"
+                            class="flex-1 h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer">
+                        <span id="font_size_display" 
+                            class="w-16 text-center font-bold text-lg bg-white px-3 py-2 rounded-lg border-2 border-purple-300">
+                            16
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">ลากเพื่อปรับขนาด (8-72px)</p>
+                </div>
+
+                <!-- Font Color -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        สีฟอนต์ <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" 
+                            name="font_color" 
+                            id="font_color" 
+                            value="#000000"
+                            class="w-16 h-12 rounded-lg border-2 border-purple-300 cursor-pointer">
+                        <input type="text" 
+                            id="font_color_text" 
+                            value="#000000"
+                            readonly
+                            class="flex-1 h-12 px-4 rounded-lg border-2 border-purple-300 bg-white font-mono text-center">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">คลิกเพื่อเลือกสี</p>
+                </div>
+            </div>
+        </div>
 
         <!-- ปุ่มบันทึกและยกเลิก -->
         <div class="flex gap-4 pt-4">
@@ -144,6 +196,21 @@
 </div>
 
 <script>
+document.getElementById('font_size').addEventListener('input', function() {
+    document.getElementById('font_size_display').textContent = this.value;
+    const previewText = document.getElementById('preview_text');
+    if (previewText) {
+        previewText.style.fontSize = this.value + 'px';
+    }
+});
+
+document.getElementById('font_color').addEventListener('input', function() {
+    document.getElementById('font_color_text').value = this.value;
+    const previewText = document.getElementById('preview_text');
+    if (previewText) {
+        previewText.style.color = this.value;
+    }
+});
 // Certificate image preview and position selection
 document.getElementById('certificate_img').addEventListener('change', function(e) {
     const file = e.target.files[0];
