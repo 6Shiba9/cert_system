@@ -46,7 +46,7 @@
 </div>
 
 <!-- Add User Modal -->
-<div id="add-user-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+<div id="add-user-modal" class="fixed rounded-xl inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <h3 class="text-lg leading-6 font-medium text-center text-gray-900">เพิ่มผู้ใช้งาน</h3>
         <div class="mt-3">

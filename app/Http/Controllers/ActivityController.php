@@ -308,22 +308,16 @@ class ActivityController extends Controller
         return response()->json($branches);
     }
 
-    public function downloadTemplate($activity_id)
+    public function downloadTemplateGeneral()
     {
-        $activity = Activity::findOrFail($activity_id);
-        
-        // สร้าง Spreadsheet ใหม่
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
-        // ตั้งชื่อ Sheet
         $sheet->setTitle('Participants');
         
-        // กำหนดหัวตาราง
         $headers = ['name', 'email', 'student_id'];
         $sheet->fromArray($headers, null, 'A1');
         
-        // จัดรูปแบบหัวตาราง - พื้นหลังสีม่วง ตัวอักษรสีขาว
         $headerStyle = [
             'font' => [
                 'bold' => true,
@@ -332,7 +326,7 @@ class ActivityController extends Controller
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '4F46E5'] // สี Indigo
+                'startColor' => ['rgb' => '4F46E5']
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -341,43 +335,22 @@ class ActivityController extends Controller
         ];
         $sheet->getStyle('A1:C1')->applyFromArray($headerStyle);
         
-        // ตั้งความกว้างคอลัมน์
         $sheet->getColumnDimension('A')->setWidth(35);
         $sheet->getColumnDimension('B')->setWidth(40);
         $sheet->getColumnDimension('C')->setWidth(20);
         
-        // เพิ่มข้อมูลตัวอย่าง 2 แถว
         $exampleData = [
-            ['สมชาย ใจดี', 'somchai@example.com', '6501234567'],
-            ['สมหญิง รักเรียน', 'somying@example.com', '6501234568'],
+            ['Name Surname', 'email@example.com', '6412345']
         ];
         $sheet->fromArray($exampleData, null, 'A2');
         
-        // จัดรูปแบบข้อมูลตัวอย่าง
-        $dataStyle = [
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_LEFT,
-                'vertical' => Alignment::VERTICAL_CENTER,
-            ]
-        ];
-        $sheet->getStyle('A2:C3')->applyFromArray($dataStyle);
+        $fileName = 'participants_template.xlsx';
         
-        // สร้างชื่อไฟล์ตามชื่อกิจกรรม - แก้ไขตรงนี้
-        $activityName = preg_replace('/[^A-Za-z0-9_\-ก-๙\s]/', '', $activity->activity_name);
-        $fileName = $activityName . '_namelist.xlsx';
-        
-        // สร้าง Writer และส่งไฟล์ให้ดาวน์โหลด
         $writer = new Xlsx($spreadsheet);
         
-        // ตั้งค่า Headers สำหรับดาวน์โหลด
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $fileName . '"');
         header('Cache-Control: max-age=0');
-        header('Cache-Control: max-age=1');
-        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-        header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
-        header('Cache-Control: cache, must-revalidate');
-        header('Pragma: public');
         
         $writer->save('php://output');
         exit;

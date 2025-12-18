@@ -103,7 +103,7 @@ Route::middleware(['auth'])->group(function () {
         // ============= API ROUTES =============
         Route::get('/api/branches/{agencyId}', [ActivityController::class, 'getBranchesByAgency']);
         // 
-        Route::get('/activity/{activity_id}/download-template', [ActivityController::class, 'downloadTemplate'])->name('download-template');
+       Route::get('/download-template-general', [ActivityController::class, 'downloadTemplateGeneral'])->name('download-template-general');
     });
     
     /*
