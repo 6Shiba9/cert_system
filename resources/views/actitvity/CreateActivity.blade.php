@@ -28,15 +28,33 @@
             <div class="flex gap-4">
                 <!-- หน่วยงาน -->
                 <div class="w-1/2">
-                    <select name="agency_id" id="agency_id"
-                        class="w-full h-10 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 required">
-                        <option value="">-- เลือกหน่วยงาน --</option>
-                        @foreach($agencies as $agency)
-                            <option value="{{ $agency->agency_id }}" {{ old('agency_id') == $agency->agency_id ? 'selected' : '' }}>
-                                {{ $agency->agency_name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    @if($user->role === 'admin')
+                        {{-- Admin เลือกหน่วยงานได้ --}}
+                        <select name="agency_id" id="agency_id"
+                            class="w-full h-10 px-4 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 required">
+                            <option value="">-- เลือกหน่วยงาน --</option>
+                            @foreach($agencies as $agency)
+                                <option value="{{ $agency->agency_id }}" {{ old('agency_id') == $agency->agency_id ? 'selected' : '' }}>
+                                    {{ $agency->agency_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    @else
+                        {{-- Manager/User ล็อกหน่วยงานของตัวเอง --}}
+                        <input type="text" 
+                               value="{{ $user->agency->agency_name }}" 
+                               class="w-full h-10 px-4 rounded-lg border border-gray-300 bg-gray-100 text-gray-700" 
+                               readonly>
+                        <input type="hidden" name="agency_id" value="{{ $user->agency_id }}">
+                        
+                        {{-- แสดง badge "ล็อกแล้ว" --}}
+                        <p class="text-xs text-gray-500 mt-1 flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                            </svg>
+                            ล็อกตามหน่วยงานของคุณ
+                        </p>
+                    @endif
                     @error('agency_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
@@ -115,29 +133,42 @@ document.getElementById('start_date').addEventListener('change', function() {
     const endDateInput = document.getElementById('end_date');
     endDateInput.min = this.value;
     
-    // ถ้าวันที่สิ้นสุดน้อยกว่าวันที่เริ่มต้น ให้รีเซ็ต
     if (endDateInput.value && endDateInput.value < this.value) {
         endDateInput.value = this.value;
     }
 });    
+
 const agencies = @json($agencies);
+const userRole = "{{ $user->role }}";
+const userAgencyId = "{{ $user->agency_id }}";
+
 document.addEventListener("DOMContentLoaded", function () {
     const agencySelect = document.getElementById("agency_id");
     const branchSelect = document.getElementById("branch_id");
 
-    agencySelect.addEventListener("change", function () {
-        const selectedAgencyId = this.value;
+    // ✅ ถ้าไม่ใช่ admin ให้โหลดสาขาของหน่วยงานนั้นทันที
+    if (userRole !== 'admin' && userAgencyId) {
+        loadBranches(userAgencyId);
+    }
 
-        // เคลียร์ options เดิม
+    // Event listener สำหรับ admin
+    if (agencySelect) {
+        agencySelect.addEventListener("change", function () {
+            const selectedAgencyId = this.value;
+            loadBranches(selectedAgencyId);
+        });
+    }
+
+    function loadBranches(agencyId) {
         branchSelect.innerHTML = '<option value="">-- เลือกสาขา --</option>';
 
-        if (!selectedAgencyId) {
+        if (!agencyId) {
             branchSelect.disabled = true;
             branchSelect.removeAttribute("required");
             return;
         }
 
-        const selectedAgency = agencies.find(a => a.agency_id == selectedAgencyId);
+        const selectedAgency = agencies.find(a => a.agency_id == agencyId);
 
         if (selectedAgency && selectedAgency.branches.length > 0) {
             branchSelect.disabled = false;
@@ -150,16 +181,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 branchSelect.appendChild(opt);
             });
         } else {
-            // ถ้า agency ไม่มีสาขา
             branchSelect.disabled = true;
             branchSelect.removeAttribute("required");
         }
-    });
+    }
 
-    // เริ่มต้น disable ไว้ก่อน
-    branchSelect.disabled = true;
+    // เริ่มต้น disable ไว้ก่อน (เฉพาะ admin)
+    if (userRole === 'admin') {
+        branchSelect.disabled = true;
+    }
 });
-
 </script>
 
 @endsection

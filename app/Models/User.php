@@ -13,10 +13,19 @@ class User extends Authenticatable
     public $timestamps = false;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 
+        'name', 'email', 'password', 'role', 'agency_id', 
     ];
 
     protected $hidden = [
         'password',
     ];
+    public function agency()
+    {
+        return $this->belongsTo(Agency::class, 'agency_id', 'agency_id');
+    }
+    
+    public function activities()
+    {
+        return $this->hasMany(Activity::class, 'user_id', 'user_id');
+    }
 }

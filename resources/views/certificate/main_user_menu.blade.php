@@ -93,9 +93,66 @@
                     </svg>
                     ค้นหาด้วยรหัส
                 </a>
+                <button id="searchMyNameBtn"
+                            class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-xl transition whitespace-nowrap flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <span class="hidden sm:inline">ค้นหาชื่อฉัน</span>
+                </button>
+                <a href="{{ route('login') }}" 
+                       class="bg-white hover:bg-gray-50 text-blue-600 font-semibold px-6 py-3 rounded-xl transition-colors duration-200 whitespace-nowrap flex items-center gap-2 justify-center shadow-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"></path>
+                        </svg>
+                        <span class="hidden sm:inline">เข้าสู่ระบบ</span>
+                </a>
             </div>
         </div>
     </nav>
+    <!-- ✅ Modal ค้นหาชื่อ -->
+    <div id="searchNameModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">ค้นหาชื่อของคุณ</h2>
+                    <p class="text-gray-600">ค้นหากิจกรรมที่คุณเข้าร่วม</p>
+                </div>
+
+                <form action="{{ route('certificate.search.name') }}" method="POST">
+                    @csrf
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            ชื่อ-นามสกุล <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                            name="name" 
+                            id="searchNameInput"
+                            placeholder="กรอกชื่อ-นามสกุลของคุณ"
+                            class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            required
+                            autofocus>
+                        <p class="text-xs text-gray-500 mt-2">💡 กรอกชื่อเหมือนในระบบของผู้จัดกิจกรรม</p>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button type="submit"
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition">
+                            🔍 ค้นหา
+                        </button>
+                        <button type="button"
+                                id="closeModalBtn"
+                                class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition">
+                            ปิด
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
     <div class="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-12 fade-in">
         <!-- Featured Latest Activity -->
@@ -390,6 +447,40 @@
             if (e.key === '/' && document.activeElement !== searchInput) {
                 e.preventDefault();
                 searchInput.focus();
+            }
+        });
+
+
+         // ✅ Modal ค้นหาชื่อ
+        const searchMyNameBtn = document.getElementById('searchMyNameBtn');
+        const searchNameModal = document.getElementById('searchNameModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const searchNameInput = document.getElementById('searchNameInput');
+
+        searchMyNameBtn.addEventListener('click', () => {
+            searchNameModal.classList.remove('hidden');
+            setTimeout(() => searchNameInput.focus(), 100);
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            searchNameModal.classList.add('hidden');
+        });
+
+        // Close modal เมื่อคลิกนอก
+        searchNameModal.addEventListener('click', (e) => {
+            if (e.target === searchNameModal) {
+                searchNameModal.classList.add('hidden');
+            }
+        });
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '/' && document.activeElement !== searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+            }
+            if (e.key === 'Escape') {
+                searchNameModal.classList.add('hidden');
             }
         });
     </script>

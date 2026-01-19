@@ -20,10 +20,13 @@ class Participant extends Model
         'student_id',
         'certificate_token',
         'certificate_generated',
+        'certificate_generated_at',
+        'certificate_signature',
     ];
 
     protected $casts = [
         'certificate_generated' => 'boolean',
+        'certificate_generated_at' => 'datetime',
     ];
 
     public function activity()
@@ -43,5 +46,22 @@ class Participant extends Model
         } while (self::where('certificate_token', $token)->exists());
         
         return $token;
+    }
+
+    /**
+     * ✅ สร้าง Digital Signature
+     */
+    public function generateSignature()
+    {
+        return hash('sha256', $this->certificate_token . $this->name . $this->activity_id . now()->timestamp);
+    }
+
+    /**
+     * ✅ สร้าง Certificate ID
+     */
+    public function getCertificateIdAttribute()
+    {
+        return strtoupper(substr($this->activity->access_code, 0, 4)) . '-' . 
+               str_pad($this->participant_id, 6, '0', STR_PAD_LEFT);
     }
 }

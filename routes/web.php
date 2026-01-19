@@ -16,7 +16,8 @@ use App\Http\Controllers\DashboardController;
 
 // หน้าแรก - User Dashboard
 Route::get('/', [CertificateController::class, 'userDashboard'])->name('user.dashboard');
-
+// web.php - เพิ่มใน PUBLIC ROUTES
+Route::post('/search-by-name', [CertificateController::class, 'searchByName'])->name('certificate.search.name');
 // === วิธีที่ 1: เข้าถึงผ่านรหัสและชื่อ (Access Code + Name) ===
 Route::get('/certificate/access', [CertificateController::class, 'showCertificateForm'])->name('certificate.form');
 Route::post('/certificate/access', [CertificateController::class, 'accessCertificate'])->name('certificate.access');
@@ -31,6 +32,10 @@ Route::post('/certificate/verify/{token}', [CertificateController::class, 'verif
 // === ดู/ดาวน์โหลด PDF Certificate ===
 Route::get('/certificate/pdf/{token}', [CertificateController::class, 'viewCertificatePdf'])->name('certificate.pdf');
 Route::get('/certificate/download/{token}', [CertificateController::class, 'downloadCertificatePdf'])->name('certificate.download');
+// web.php - เพิ่มใน PUBLIC ROUTES
+// เพิ่มใน web.php (PUBLIC ROUTES)
+Route::get('/verify-certificate/{token}', [CertificateController::class, 'verifyPublicCertificate'])
+    ->name('certificate.verify.public');
 /*
 |--------------------------------------------------------------------------
 | AUTHENTICATION ROUTES

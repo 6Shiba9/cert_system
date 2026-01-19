@@ -84,13 +84,22 @@ class CertificateController extends Controller
             abort(404, 'กิจกรรมนี้ปิดการใช้งานแล้ว');
         }
 
-        // บันทึก Log
+        // ✅ บันทึก Log และ Update certificate_generated
         DownloadLog::create([
             'participant_id' => $participant->participant_id,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'downloaded_at' => now(),
         ]);
+
+        // ✅ Update สถานะการออกใบประกาศ
+        if (!$participant->certificate_generated) {
+            $participant->update([
+                'certificate_generated' => true,
+                'certificate_generated_at' => now(),
+                'certificate_signature' => $participant->generateSignature(),
+            ]);
+        }
 
         // สร้าง HTML
         $html = view('certificate.template_pdf', [
@@ -280,5 +289,83 @@ class CertificateController extends Controller
 
             session()->forget($sessionKey);
             return redirect()->route('certificate.pdf', $token);
+        }
+        /**
+         * ✅ Verify Certificate (หน้า Public สำหรับตรวจสอบความถูกต้อง)
+         */
+        public function verifyPublicCertificate($token)
+        {
+            $participant = Participant::where('certificate_token', $token)
+                ->with(['activity.agency', 'downloadLogs'])
+                ->first();
+
+            if (!$participant) {
+                return view('certificate.verify-result', [
+                    'valid' => false,
+                    'message' => 'ไม่พบใบประกาศนี้ในระบบ อาจถูกปลอมแปลง'
+                ]);
+            }
+
+            // ✅ สร้าง Certificate ID
+            $certificateId = strtoupper(substr($participant->activity->access_code, 0, 4)) . '-' . 
+                            str_pad($participant->participant_id, 6, '0', STR_PAD_LEFT);
+
+            // ✅ สร้าง Digital Signature
+            $signature = substr(hash('sha256', $participant->certificate_token . $participant->name . $participant->activity->activity_id), 0, 16);
+
+            return view('certificate.verify-result', [
+                'valid' => true,
+                'participant' => $participant,
+                'activity' => $participant->activity,
+                'certificateId' => $certificateId,
+                'signature' => $signature,
+                'downloadCount' => $participant->downloadLogs->count(),
+                'firstDownload' => $participant->downloadLogs->first(),
+                'lastDownload' => $participant->downloadLogs->last(),
+            ]);
+        }
+        /**
+         * ✅ ค้นหากิจกรรมตามชื่อผู้เข้าร่วม
+         */
+        public function searchByName(Request $request)
+        {
+            $request->validate([
+                'name' => 'required|string|min:2',
+            ]);
+
+            $searchName = trim($request->name);
+
+            // ค้นหาผู้เข้าร่วมที่มีชื่อตรงกัน
+            $participants = Participant::where('name', 'LIKE', '%' . $searchName . '%')
+                ->with(['activity' => function($query) {
+                    $query->where('is_active', true)->with('agency');
+                }])
+                ->get()
+                ->filter(function($participant) {
+                    return $participant->activity !== null;
+                });
+
+            if ($participants->isEmpty()) {
+                return back()->with('error', 'ไม่พบชื่อ "' . $searchName . '" ในระบบ กรุณาตรวจสอบชื่อ-นามสกุลอีกครั้ง');
+            }
+
+            // ถ้าเจอแค่ 1 กิจกรรม ไปหน้ายืนยันเลย
+            if ($participants->count() === 1) {
+                $participant = $participants->first();
+                
+                // ถ้ามีรหัสนักศึกษา ไปหน้ายืนยันรหัส
+                if (!empty($participant->student_id)) {
+                    return redirect()->route('certificate.verify.form', $participant->certificate_token);
+                }
+                
+                // ถ้าไม่มีรหัส ไปดูใบประกาศเลย
+                return redirect()->route('certificate.pdf', $participant->certificate_token);
+            }
+
+            // ถ้าเจอหลายกิจกรรม แสดงให้เลือก
+            return view('certificate.search-results', [
+                'searchName' => $searchName,
+                'participants' => $participants
+            ]);
         }
 }

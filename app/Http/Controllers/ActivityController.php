@@ -23,20 +23,37 @@ class ActivityController extends Controller
 {
     public function showCreateActivity()
     {
-        $agencies = Agency::with('branches')->get();
+        $user = Auth::user();
+        
+        // ✅ ถ้าเป็น admin ดูหน่วยงานทั้งหมด, ถ้าไม่ใช่ดูเฉพาะหน่วยงานของตัวเอง
+        if ($user->role === 'admin') {
+            $agencies = Agency::with('branches')->get();
+        } else {
+            $agencies = Agency::with('branches')
+                ->where('agency_id', $user->agency_id)
+                ->get();
+        }
+        
         $branches = Branches::all();
-        return view('actitvity.CreateActivity', compact('agencies', 'branches'));
+        return view('actitvity.CreateActivity', compact('agencies', 'branches', 'user'));
     }
 
     public function saveActivity(Request $request)
     {
+        $user = Auth::user();
+        
+        // ✅ ถ้าไม่ใช่ admin ให้บังคับใช้ agency_id ของ user
+        if ($user->role !== 'admin') {
+            $request->merge(['agency_id' => $user->agency_id]);
+        }
+        
         $request->validate([
-        'activity_name' => 'required|string|max:255',
-        'start_date' => 'required|date|after_or_equal:today',
-        'end_date' => 'required|date|after_or_equal:start_date',
-        'agency_id' => 'required|exists:agency,agency_id',
-        'branch_id' => 'nullable|exists:branches,branch_id',
-    ]);
+            'activity_name' => 'required|string|max:255',
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'agency_id' => 'required|exists:agency,agency_id',
+            'branch_id' => 'nullable|exists:branches,branch_id',
+        ]);
 
         $activity = new Activity();
         $activity->user_id = $request->user_id;
@@ -46,13 +63,13 @@ class ActivityController extends Controller
         $activity->start_date = $request->start_date;
         $activity->end_date = $request->end_date;
         $activity->access_code = Activity::generateAccessCode();
-        $activity->is_active = true; // ตั้งค่าเริ่มต้นเป็น true
+        $activity->is_active = true;
         $activity->save();
 
         return redirect()
             ->route('add-certificate', ['activity_id' => $activity->activity_id])
             ->with('success', 'บันทึกกิจกรรมเรียบร้อย! กรุณาเพิ่มใบประกาศต่อ');
-        }
+    }
 
     public function showManageActivities()
     {
@@ -60,100 +77,28 @@ class ActivityController extends Controller
 
         if ($user->role === 'admin') {
             $activities = Activity::with(['agency', 'branch', 'user','participants'])
-            ->get();
+                ->get();
         } else {
-        $activities = Activity::with(['agency', 'branch', 'user'])
-            ->where('user_id', $user->user_id)
-            ->get();
+            $activities = Activity::with(['agency', 'branch', 'user'])
+                ->where('user_id', $user->user_id)
+                ->get();
         }
         return view('actitvity.ManageActivities', compact('activities'));
     }
 
     public function storeCertificate(Request $request)
     {
+        $request->validate([
+            'activity_id' => 'required|exists:activity,activity_id',
+            'certificate_img' => 'required|image|mimes:png,jpg,jpeg|max:2048',
+            'position_x' => 'required|integer|min:0',
+            'position_y' => 'required|integer|min:0',
+            'font_size' => 'nullable|integer|min:8|max:72',
+            'font_color' => 'nullable|string|max:7',
+        ]);
 
-    // dd([
-    //     'has_file' => $request->hasFile('certificate_img'),
-    //     'all_files' => $request->allFiles(),
-    //     'all_data' => $request->all(),
-    // ]);
-
-    $request->validate([
-        'activity_id' => 'required|exists:activity,activity_id',
-        'certificate_img' => 'required|image|mimes:png,jpg,jpeg|max:2048',
-        'position_x' => 'required|integer|min:0',
-        'position_y' => 'required|integer|min:0',
-        'font_size' => 'nullable|integer|min:8|max:72',
-        'font_color' => 'nullable|string|max:7',
-    ]);
-
-    $activity = Activity::findOrFail($request->activity_id);
-    
-    if ($activity->certificate_img) {
-        Storage::disk('public')->delete($activity->certificate_img);
-    }
-    
-    $file = $request->file('certificate_img');
-    $extension = $file->getClientOriginalExtension(); // jpg, png, jpeg
-    $fileName = 'cert_' . $activity->activity_id . '_' . time() . '.' . $extension;
-    
-    $path = $file->storeAs('certificates',$fileName,'public');
-    
-    $activity->certificate_img = $path; 
-    $activity->position_x = $request->position_x;
-    $activity->position_y = $request->position_y;
-    $activity->font_size = $request->font_size ?? 16;
-    $activity->font_color = $request->font_color ?? '#000000';
-    $activity->save();
-
-    return redirect()
-        ->route('activity.certificates', ['id' => $activity->activity_id])
-        ->with('success', 'อัปโหลดใบประกาศสำเร็จ! ตอนนี้สามารถเพิ่มรายชื่อผู้เข้าร่วมได้แล้ว');
-    }
-
-
-    public function editActivity($id)
-    {
-        $activity = Activity::findOrFail($id);
-        $agencies = Agency::with('branches')->get();
-        $branches = Branches::all();
+        $activity = Activity::findOrFail($request->activity_id);
         
-        return view('actitvity.EditActivity', compact('activity', 'agencies', 'branches'));
-    }
-
-    public function updateActivity(Request $request, $id)
-{
-    $activity = Activity::findOrFail($id);
-    $isStarted = now()->gte($activity->start_date);
-    $request->validate([
-        'activity_name' => 'required|string|max:255',
-        'start_date' => $isStarted 
-            ? 'required|date' // เริ่มแล้ว - ไม่จำกัด
-            : 'required|date|after_or_equal:today', // ยังไม่เริ่ม - ต้องวันนี้ขึ้นไป
-        'end_date' => 'required|date|after_or_equal:start_date',
-        'agency_id' => 'nullable|exists:agency,agency_id',
-        'branch_id' => 'nullable|exists:branches,branch_id',
-        'certificate_img' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-        'position_x' => 'nullable|integer|min:0|max:1000',
-        'position_y' => 'nullable|integer|min:0|max:1000',
-        'font_size' => 'nullable|integer|min:8|max:72',
-        'font_color' => 'nullable|string|max:7',
-    ]);
-
-    $activity = Activity::findOrFail($id);
-    
-    // Update basic info
-    $activity->activity_name = $request->activity_name;
-    $activity->agency_id = $request->agency_id;
-    $activity->branch_id = $request->branch_id;
-    $activity->start_date = $request->start_date;
-    $activity->end_date = $request->end_date;
-    $activity->font_size = $request->font_size ?? 16;
-    $activity->font_color = $request->font_color ?? '#000000';
-    $activity->is_active = $request->has('is_active') ? 1 : 0;
-    
-    if ($request->hasFile('certificate_img')) {
-
         if ($activity->certificate_img) {
             Storage::disk('public')->delete($activity->certificate_img);
         }
@@ -161,23 +106,102 @@ class ActivityController extends Controller
         $file = $request->file('certificate_img');
         $extension = $file->getClientOriginalExtension();
         $fileName = 'cert_' . $activity->activity_id . '_' . time() . '.' . $extension;
-        $path = $file->storeAs('certificates', $fileName, 'public');
         
-        $activity->certificate_img = $path;
-    }
-    
-    if ($request->filled('position_x') && $request->filled('position_y')) {
+        $path = $file->storeAs('certificates',$fileName,'public');
+        
+        $activity->certificate_img = $path; 
         $activity->position_x = $request->position_x;
         $activity->position_y = $request->position_y;
+        $activity->font_size = $request->font_size ?? 16;
+        $activity->font_color = $request->font_color ?? '#000000';
+        $activity->save();
+
+        return redirect()
+            ->route('activity.certificates', ['id' => $activity->activity_id])
+            ->with('success', 'อัปโหลดใบประกาศสำเร็จ! ตอนนี้สามารถเพิ่มรายชื่อผู้เข้าร่วมได้แล้ว');
     }
+
+    public function editActivity($id)
+    {
+        $user = Auth::user();
+        $activity = Activity::findOrFail($id);
+        
+        // ✅ ถ้าเป็น admin ดูหน่วยงานทั้งหมด, ถ้าไม่ใช่ดูเฉพาะหน่วยงานของตัวเอง
+        if ($user->role === 'admin') {
+            $agencies = Agency::with('branches')->get();
+        } else {
+            $agencies = Agency::with('branches')
+                ->where('agency_id', $user->agency_id)
+                ->get();
+        }
+        
+        $branches = Branches::all();
+        
+        return view('actitvity.EditActivity', compact('activity', 'agencies', 'branches', 'user'));
+    }
+
+    public function updateActivity(Request $request, $id)
+    {
+        $user = Auth::user();
+        $activity = Activity::findOrFail($id);
+        $isStarted = now()->gte($activity->start_date);
+        
+        // ✅ ถ้าไม่ใช่ admin ให้บังคับใช้ agency_id ของ user
+        if ($user->role !== 'admin') {
+            $request->merge(['agency_id' => $user->agency_id]);
+        }
+        
+        $request->validate([
+            'activity_name' => 'required|string|max:255',
+            'start_date' => $isStarted 
+                ? 'required|date'
+                : 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'agency_id' => 'nullable|exists:agency,agency_id',
+            'branch_id' => 'nullable|exists:branches,branch_id',
+            'certificate_img' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+            'position_x' => 'nullable|integer|min:0|max:1000',
+            'position_y' => 'nullable|integer|min:0|max:1000',
+            'font_size' => 'nullable|integer|min:8|max:72',
+            'font_color' => 'nullable|string|max:7',
+        ]);
+        
+        $activity->activity_name = $request->activity_name;
+        $activity->agency_id = $request->agency_id;
+        $activity->branch_id = $request->branch_id;
+        $activity->start_date = $request->start_date;
+        $activity->end_date = $request->end_date;
+        $activity->font_size = $request->font_size ?? 16;
+        $activity->font_color = $request->font_color ?? '#000000';
+        $activity->is_active = $request->has('is_active') ? 1 : 0;
+        
+        if ($request->hasFile('certificate_img')) {
+            if ($activity->certificate_img) {
+                Storage::disk('public')->delete($activity->certificate_img);
+            }
+            
+            $file = $request->file('certificate_img');
+            $extension = $file->getClientOriginalExtension();
+            $fileName = 'cert_' . $activity->activity_id . '_' . time() . '.' . $extension;
+            $path = $file->storeAs('certificates', $fileName, 'public');
+            
+            $activity->certificate_img = $path;
+        }
+        
+        if ($request->filled('position_x') && $request->filled('position_y')) {
+            $activity->position_x = $request->position_x;
+            $activity->position_y = $request->position_y;
+        }
+        
+        $activity->save();
+
+        return redirect()
+            ->route('manage-activities')
+            ->with('success', 'แก้ไขกิจกรรมเรียบร้อยแล้ว');
+    }
+
+    // ... methods อื่นๆ เหมือนเดิม ...
     
-    $activity->save();
-
-    return redirect()
-        ->route('manage-activities')
-        ->with('success', 'แก้ไขกิจกรรมเรียบร้อยแล้ว');
-    }
-
     public function showAddCertificate($id)
     {
         $activity = Activity::findOrFail($id);
@@ -188,7 +212,7 @@ class ActivityController extends Controller
     {
         $activity = Activity::findOrFail($id);
         $activity->participants()->delete();
-        // Delete certificate image if exists
+        
         if ($activity->certificate_img) {
             Storage::disk('public')->delete($activity->certificate_img);
         }
@@ -197,8 +221,6 @@ class ActivityController extends Controller
         
         return redirect()->route('manage-activities')->with('success', 'กิจกรรมถูกลบเรียบร้อยแล้ว');
     }
-
-    // ================= Participant Management =================//
 
     public function showUploadParticipants($activityId)
     {
@@ -224,13 +246,11 @@ class ActivityController extends Controller
                 'extension' => $file->getClientOriginalExtension()
             ]);
 
-            // นับจำนวนผู้เข้าร่วมก่อนอัพโหลด
             $beforeCount = Participant::where('activity_id', $activity->activity_id)->count();
 
             $import = new ParticipantsImport($activity->activity_id);
             Excel::import($import, $file);
 
-            // นับจำนวนผู้เข้าร่วมหลังอัพโหลด
             $afterCount = Participant::where('activity_id', $activity->activity_id)->count();
             $actualImported = $afterCount - $beforeCount;
             $skipped = $import->getSkippedCount();
@@ -256,7 +276,6 @@ class ActivityController extends Controller
                 'required',
                 'string',
                 'max:255',
-                // ตรวจสอบว่ารหัสนักศึกษาซ้ำในกิจกรรมเดียวกันหรือไม่
                 Rule::unique('participants', 'student_id')
                     ->where('activity_id', $activityId)
             ],
@@ -296,7 +315,29 @@ class ActivityController extends Controller
 
     public function deleteParticipant($id)
     {
-        $participant = Participant::findOrFail($id);
+        $user = Auth::user();
+        $participant = Participant::with('downloadLogs')->findOrFail($id);
+        
+        // ✅ ตรวจสอบว่ามี download log หรือไม่
+        $hasDownloadLog = $participant->downloadLogs()->exists();
+        
+        // 🔒 ถ้าไม่ใช่ admin และมี download log ห้ามลบ
+        if ($hasDownloadLog && $user->role !== 'admin') {
+            return back()->with('error', 'ไม่สามารถลบผู้เข้าร่วมที่มีประวัติดาวน์โหลดใบประกาศได้ กรุณาติดต่อ Admin หากมีปัญหา');
+        }
+        
+        // ⚠️ ถ้าเป็น admin และมี download log แสดงคำเตือน
+        if ($hasDownloadLog && $user->role === 'admin') {
+            // Admin สามารถลบได้ แต่ต้องยืนยัน
+            $downloadCount = $participant->downloadLogs->count();
+            // คำเตือนจะแสดงใน JavaScript confirmation
+        }
+        
+        // ✅ ลบ download logs ก่อน (ถ้าเป็น admin)
+        if ($user->role === 'admin') {
+            $participant->downloadLogs()->delete();
+        }
+        
         $participant->delete();
 
         return back()->with('success', 'ลบผู้เข้าร่วมเรียบร้อยแล้ว');

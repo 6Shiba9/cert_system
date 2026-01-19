@@ -11,8 +11,8 @@
             <p class="text-gray-600 mt-1">{{ $activity->activity_name }}</p>
         </div>
         <div class="flex gap-3">
-            <a href="{{ route('certificate.preview.page', $activity->activity_id) }}" 
-            class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition duration-200 ease-in-out flex items-center gap-2">
+            <a href="{{ route('certificate.preview.page', $activity->activity_id) }}"
+                class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition duration-200 ease-in-out flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -115,12 +115,23 @@
                     @forelse($activity->participants as $index => $participant)
                     <tr class="hover:bg-gray-100 transition">
                         <td class="px-4 py-3 text-sm text-gray-600 text-center">{{ $index + 1 }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-800">{{ $participant->name }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">
+                            {{ $participant->name }}
+                            {{-- ✅ แสดง badge ถ้ามี download log --}}
+                            @if($participant->downloadLogs->count() > 0)
+                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                </svg>
+                                มีประวัติ
+                            </span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-sm text-center">
                             @if($participant->student_id)
-                                <span class="font-mono bg-gray-100 px-2 py-1 rounded text-gray-800">{{ $participant->student_id }}</span>
+                            <span class="font-mono bg-gray-100 px-2 py-1 rounded text-gray-800">{{ $participant->student_id }}</span>
                             @else
-                                <span class="text-gray-400">-</span>
+                            <span class="text-gray-400">-</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-700">{{ $participant->email ?? '-' }}</td>
@@ -131,24 +142,24 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex gap-1 justify-center flex-wrap">
-                                <a href="{{ route('certificate.pdf', $participant->certificate_token) }}" 
-                                   target="_blank"
-                                   class="bg-blue-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-blue-700 transition flex items-center gap-1">
+                                <a href="{{ route('certificate.pdf', $participant->certificate_token) }}"
+                                    target="_blank"
+                                    class="bg-blue-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-blue-700 transition flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                     </svg>
                                     ดู
                                 </a>
-                                <a href="{{ route('certificate.download', $participant->certificate_token) }}" 
-                                   class="bg-green-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-700 transition flex items-center gap-1">
+                                <a href="{{ route('certificate.download', $participant->certificate_token) }}"
+                                    class="bg-green-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-700 transition flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                                     </svg>
                                     DL
                                 </a>
                                 <button onclick="copyLink('{{ route('certificate.pdf', $participant->certificate_token) }}')"
-                                        class="bg-gray-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-gray-700 transition flex items-center gap-1">
+                                    class="bg-gray-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-gray-700 transition flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                                     </svg>
@@ -165,13 +176,28 @@
                                 class="text-blue-600 hover:text-blue-900 font-medium mr-2">
                                 แก้ไข
                             </button>
-                            <form action="{{ route('participant.delete', $participant->participant_id) }}" method="POST" class="inline">
+
+                            {{-- ✅ ปุ่มลบมีเงื่อนไข --}}
+                            <form action="{{ route('participant.delete', $participant->participant_id) }}"
+                                method="POST"
+                                class="inline"
+                                onsubmit="return confirmDelete(
+                                      '{{ $participant->name }}', 
+                                      {{ $participant->downloadLogs->count() }}, 
+                                      '{{ Auth::user()->role }}'
+                                  )">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
-                                    class="text-red-600 hover:text-red-900 font-medium"
-                                    onclick="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้เข้าร่วมคนนี้?')">
+                                    class="text-red-600 hover:text-red-900 font-medium
+                                    {{ $participant->downloadLogs->count() > 0 && Auth::user()->role !== 'admin' ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                    {{ $participant->downloadLogs->count() > 0 && Auth::user()->role !== 'admin' ? 'disabled' : '' }}>
                                     ลบ
+                                    @if($participant->downloadLogs->count() > 0 && Auth::user()->role !== 'admin')
+                                    <svg class="inline w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    @endif
                                 </button>
                             </form>
                         </td>
@@ -193,71 +219,72 @@
     </div>
 </div>
 
+<!-- Modals เหมือนเดิม -->
 <!-- Add/Edit Participant Modal -->
 <div id="add-edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
         <h3 id="modal-title" class="text-xl font-bold text-center text-gray-800 mb-6">เพิ่มผู้เข้าร่วม</h3>
-            <form id="participant-form" action="{{ route('participant.add', $activity->activity_id) }}" method="POST" class="space-y-4">
-                @csrf
-                <input type="hidden" name="_method" id="form-method" value="POST">
-                <input type="hidden" name="participant_id" id="participant-id">
+        <form id="participant-form" action="{{ route('participant.add', $activity->activity_id) }}" method="POST" class="space-y-4">
+            @csrf
+            <input type="hidden" name="_method" id="form-method" value="POST">
+            <input type="hidden" name="participant_id" id="participant-id">
 
-                <div>
-                    <label for="participant_name" class="block text-sm font-semibold text-gray-700 mb-1">
-                        ชื่อ-นามสกุล <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="name" id="participant_name" 
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none" 
-                        placeholder="กรอกชื่อ-นามสกุล"
-                        value="{{ old('name') }}"
-                        required>
-                    @error('name')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+            <div>
+                <label for="participant_name" class="block text-sm font-semibold text-gray-700 mb-1">
+                    ชื่อ-นามสกุล <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="name" id="participant_name"
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    placeholder="กรอกชื่อ-นามสกุล"
+                    value="{{ old('name') }}"
+                    required>
+                @error('name')
+                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
 
-                <div>
-                    <label for="participant_student_id" class="block text-sm font-semibold text-gray-700 mb-1">
-                        รหัสนักศึกษา <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="student_id" id="participant_student_id" 
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                        placeholder="เช่น 6512345"
-                        value="{{ old('student_id') }}"
-                        required>
-                    @error('student_id')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+            <div>
+                <label for="participant_student_id" class="block text-sm font-semibold text-gray-700 mb-1">
+                    รหัสนักศึกษา <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="student_id" id="participant_student_id"
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    placeholder="เช่น 6512345"
+                    value="{{ old('student_id') }}"
+                    required>
+                @error('student_id')
+                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
 
-                <div>
-                    <label for="participant_email" class="block text-sm font-semibold text-gray-700 mb-1">
-                        อีเมล
-                    </label>
-                    <input type="email" name="email" id="participant_email" 
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                        placeholder="example@email.com"
-                        value="{{ old('email') }}">
-                    @error('email')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+            <div>
+                <label for="participant_email" class="block text-sm font-semibold text-gray-700 mb-1">
+                    อีเมล
+                </label>
+                <input type="email" name="email" id="participant_email"
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    placeholder="example@email.com"
+                    value="{{ old('email') }}">
+                @error('email')
+                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
+            </div>
 
-                <div class="flex gap-3 mt-6">
-                    <button type="submit"
-                        class="w-1/2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
-                        บันทึก
-                    </button>
-                    <button type="button" id="close-modal-btn"
-                        class="w-1/2 px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg hover:bg-gray-500 transition">
-                        ปิด
-                    </button>
-                </div>
-            </form>
+            <div class="flex gap-3 mt-6">
+                <button type="submit"
+                    class="w-1/2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                    บันทึก
+                </button>
+                <button type="button" id="close-modal-btn"
+                    class="w-1/2 px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg hover:bg-gray-500 transition">
+                    ปิด
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Upload Excel Modal -->
+<!-- Upload Excel Modal เหมือนเดิม -->
 <div id="upload-excel-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 relative animate-fadeIn">
         <div class="flex items-center justify-between mb-6">
@@ -274,9 +301,8 @@
             </button>
         </div>
 
-        <!-- ปุ่มดาวน์โหลดไฟล์ต้นแบบ -->
         <div class="mb-5">
-            <a href="{{ route('download-template-general') }}" 
+            <a href="{{ route('download-template-general') }}"
                 class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition shadow-md">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -287,11 +313,11 @@
 
         <form action="{{ route('participants.upload', $activity->activity_id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf
-            
+
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">เลือกไฟล์ Excel</label>
                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 transition">
-                    <input type="file" name="participants_file" id="excel-file" 
+                    <input type="file" name="participants_file" id="excel-file"
                         accept=".xlsx,.xls,.csv"
                         class="hidden"
                         required>
@@ -309,7 +335,8 @@
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
                 <p class="text-xs font-bold text-blue-900 mb-3 flex items-center gap-2">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 3a1 1 0 00-.993.883L9 10v4a1 1 0 001.993.117L11 14v-4a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </path>
                     </svg>
                     📋 รูปแบบไฟล์ Excel
                 </p>
@@ -332,7 +359,6 @@
                     </li>
                 </ul>
             </div>
-
             <div class="flex gap-3 mt-6">
                 <button type="submit"
                     class="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-lg">
@@ -349,9 +375,36 @@
         </form>
     </div>
 </div>
-
 <!-- Scripts -->
 <script>
+    /**
+     * ✅ ฟังก์ชันยืนยันการลบพร้อมเช็ค download log
+     */
+    function confirmDelete(name, downloadCount, userRole) {
+        // ถ้าไม่ใช่ admin และมี download log ห้ามลบ
+        if (userRole !== 'admin' && downloadCount > 0) {
+            alert(`⚠️ ไม่สามารถลบ "${name}" ได้\n\nผู้เข้าร่วมคนนี้มีประวัติดาวน์โหลดใบประกาศแล้ว ${downloadCount} ครั้ง\n\nกรุณาติดต่อ Admin หากต้องการลบข้อมูลนี้จริงๆ`);
+            return false;
+        }
+
+        // ถ้าเป็น admin และมี download log แสดงคำเตือน
+        if (userRole === 'admin' && downloadCount > 0) {
+            let message = `⚠️ คำเตือนสำหรับ Admin\n\n`;
+            message += `คุณกำลังจะลบ "${name}"\n`;
+            message += `ผู้เข้าร่วมคนนี้มีประวัติดาวน์โหลดใบประกาศ ${downloadCount} ครั้ง\n\n`;
+            message += `การลบจะทำให้:\n`;
+            message += `- ข้อมูลผู้เข้าร่วมถูกลบถาวร\n`;
+            message += `- ประวัติการดาวน์โหลด ${downloadCount} รายการถูกลบ\n`;
+            message += `- ลิงก์ใบประกาศจะใช้งานไม่ได้อีกต่อไป\n\n`;
+            message += `คุณแน่ใจหรือไม่ว่าต้องการดำเนินการต่อ?`;
+
+            return confirm(message);
+        }
+
+        // กรณีปกติ (ไม่มี download log)
+        return confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${name}"?`);
+    }
+
     function copyLink(url) {
         navigator.clipboard.writeText(url).then(function() {
             alert('✅ คัดลอกลิงก์เรียบร้อยแล้ว!\n' + url);
@@ -382,88 +435,87 @@
         participantStudentIdInput.value = '';
         participantEmailInput.value = '';
         modal.classList.remove('hidden');
-        });
+    });
 
-        // Open Edit Modal
-        function openEditModal(button) {
-            modalTitle.innerText = 'แก้ไขผู้เข้าร่วม';
-            const id = button.getAttribute('data-id');
-            const name = button.getAttribute('data-name');
-            const studentId = button.getAttribute('data-student-id');
-            const email = button.getAttribute('data-email');
+    // Open Edit Modal
+    function openEditModal(button) {
+        modalTitle.innerText = 'แก้ไขผู้เข้าร่วม';
+        const id = button.getAttribute('data-id');
+        const name = button.getAttribute('data-name');
+        const studentId = button.getAttribute('data-student-id');
+        const email = button.getAttribute('data-email');
 
-            form.action = "{{ route('participant.update', ['id' => ':id']) }}".replace(':id', id);
-            formMethod.value = 'PUT';
-            participantIdInput.value = id;
-            participantNameInput.value = name;
-            participantStudentIdInput.value = studentId || '';
-            participantEmailInput.value = email || '';
+        form.action = "{{ route('participant.update', ['id' => ':id']) }}".replace(':id', id);
+        formMethod.value = 'PUT';
+        participantIdInput.value = id;
+        participantNameInput.value = name;
+        participantStudentIdInput.value = studentId || '';
+        participantEmailInput.value = email || '';
 
-            modal.classList.remove('hidden');
-        }
+        modal.classList.remove('hidden');
+    }
 
-        // Close Modal
-        closeModalBtn.addEventListener('click', () => {
+    // Close Modal
+    closeModalBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
             modal.classList.add('hidden');
-        });
+        }
+    });
 
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                modal.classList.add('hidden');
-            }
-        });
+    // Upload Excel Modal
+    const uploadExcelBtn = document.getElementById('upload-excel-btn');
+    const uploadModal = document.getElementById('upload-excel-modal');
+    const closeUploadModalBtn = document.getElementById('close-upload-modal-btn');
+    const closeUploadModalBtnX = document.getElementById('close-upload-modal-btn-x');
+    const excelFileInput = document.getElementById('excel-file');
+    const fileNameDisplay = document.getElementById('file-name');
 
-        // Upload Excel Modal
-        const uploadExcelBtn = document.getElementById('upload-excel-btn');
-        const uploadModal = document.getElementById('upload-excel-modal');
-        const closeUploadModalBtn = document.getElementById('close-upload-modal-btn');
-        const closeUploadModalBtnX = document.getElementById('close-upload-modal-btn-x');
-        const excelFileInput = document.getElementById('excel-file');
-        const fileNameDisplay = document.getElementById('file-name');
+    uploadExcelBtn.addEventListener('click', () => {
+        uploadModal.classList.remove('hidden');
+    });
 
-        uploadExcelBtn.addEventListener('click', () => {
-            uploadModal.classList.remove('hidden');
-        });
+    closeUploadModalBtn.addEventListener('click', () => {
+        uploadModal.classList.add('hidden');
+    });
 
-        closeUploadModalBtn.addEventListener('click', () => {
+    closeUploadModalBtnX.addEventListener('click', () => {
+        uploadModal.classList.add('hidden');
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === uploadModal) {
             uploadModal.classList.add('hidden');
-        });
+        }
+    });
 
-        closeUploadModalBtnX.addEventListener('click', () => {
-            uploadModal.classList.add('hidden');
-        });
+    excelFileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            fileNameDisplay.textContent = `📄 ${file.name}`;
+        }
+    });
 
-        window.addEventListener('click', (event) => {
-            if (event.target === uploadModal) {
-                uploadModal.classList.add('hidden');
+    // Auto-hide alerts
+    setTimeout(() => {
+        ['alert-success', 'alert-error'].forEach(id => {
+            let alert = document.getElementById(id);
+            if (alert) {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
             }
         });
+    }, 5000);
 
-        excelFileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                fileNameDisplay.textContent = `📄 ${file.name}`;
-            }
-        });
-
-        // Auto-hide alerts
-        setTimeout(() => {
-            ['alert-success', 'alert-error'].forEach(id => {
-                let alert = document.getElementById(id);
-                if (alert) {
-                    alert.style.transition = 'opacity 0.5s';
-                    alert.style.opacity = '0';
-                    setTimeout(() => alert.remove(), 500);
-                }
-            });
-        }, 3000);
-
-        // เปิด modal อัตโนมัติถ้ามี validation error
-        @if($errors->any())
-            document.addEventListener('DOMContentLoaded', function() {
-                document.getElementById('add-edit-modal').classList.remove('hidden');
-            });
-        @endif
-
-        </script>
+    // เปิด modal อัตโนมัติถ้ามี validation error
+    @if($errors -> any())
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('add-edit-modal').classList.remove('hidden');
+    });
+    @endif
+</script>
 @endsection
