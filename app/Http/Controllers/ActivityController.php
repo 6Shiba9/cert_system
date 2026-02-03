@@ -305,12 +305,25 @@ class ActivityController extends Controller
         
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
+            'student_id' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('participants', 'student_id')
+                    ->where('activity_id', $participant->activity_id)
+                    ->ignore($participant->participant_id, 'participant_id')
+            ],
+            'email' => 'nullable|email|max:255',
         ]);
 
         $participant->name = $validatedData['name'];
+        $participant->student_id = $validatedData['student_id'];
+        $participant->email = $validatedData['email'];
         $participant->save();
 
-        return redirect()->route('activity.certificates', $participant->activity_id)->with('success', 'แก้ไขผู้เข้าร่วมเรียบร้อยแล้ว');
+        return redirect()
+            ->route('activity.certificates', $participant->activity_id)
+            ->with('success', 'แก้ไขผู้เข้าร่วมเรียบร้อยแล้ว');
     }
 
     public function deleteParticipant($id)
